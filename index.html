@@ -3150,97 +3150,57 @@
       }
     }, 140);
 
-    // Move away from splash quickly
-    setTimeout(()=>{
-      // init
-      refreshTodayCountersIfNeeded();
-      // session loaded from localStorage? bootstrap handles
-      session = loadJSON(STORE_SESSION, null);
-      if (session?.phone){
-        hydrateCalendarResetForSession();
-        // initialize earnings state
-        earnings = loadJSON(STORE_EARN, null);
-        notifs = loadJSON(STORE_NOTIF, null) || [];
-        history = loadJSON(STORE_HISTORY, null) || [];
-        // Signed-in UI
-        applyPrefsToSwitches();
-        startAppFromSession(session);
-      }else{
+    <script>
+  <script>
+  // Move away from splash quickly (robust: always reaches login if no valid session)
+  setTimeout(() => {
+    try {
+      // read session safely
+      const s = loadJSON(STORE_SESSION, null);
+
+      if (s && s.phone) {
+        // hydrate minimal session state
+        session = s;
+
+        // ensure prefs & UI are consistent
+        applyPrefsToSwitches?.();
+        setSignedTopUI?.(session.driverName || "Driver");
+
+        // availability derived from stored session
+        availability = session.availability === "online" ? "online" : "offline";
+
+        // ensure coverage eligibility is computed (async)
+        refreshCoverage?.(true).then(() => {
+          syncCoverageUI?.();
+          applyAvailabilityUI?.(false);
+
+          // refresh UI
+          hydrateDashboard?.();
+          hydrateMapUI?.();
+          hydrateNotifs?.();
+          hydrateHistory?.();
+          syncProfileUI?.();
+
+          // go to home and start scheduler only if allowed
+          setScreen("home");
+          if (availability === "online" && eligible) {
+            startIncomingScheduler?.();
+          }
+        }).catch(() => {
+          // if coverage fails, still let user login flow continue
+          setScreen("home");
+          applyAvailabilityUI?.(false);
+          hydrateDashboard?.();
+        });
+      } else {
+        // no session -> go to login
         setScreen("login");
       }
-    }, 1200);
-
-    function hydrateCalendarResetForSession(){
-      // keep session today key aligned
-      const todayKey = new Date().toISOString().slice(0,10);
-      if (session){
-        if (session.todayKey && session.todayKey !== todayKey){
-          session.todayKey = todayKey;
-          saveJSON(STORE_SESSION, session);
-        }
-      }
+    } catch (e) {
+      // any error -> do NOT stay stuck on splash
+      console.error(e);
+      setScreen("login");
     }
-
-    // ---------- Scheduler start when online & eligible ----------
-    function maybeStart(){
-      if (availability === "online" && eligible && (!trip || trip.stage === "completed")){
-        startIncomingScheduler();
-      }
-    }
-
-    // After refreshCoverage resolves, start scheduler
-    // We'll hook into home screen activation after sign-in
-    function scheduleOnOnline(){
-      refreshCoverage(false).then(()=>{
-        if (availability === "online" && eligible){
-          startIncomingScheduler();
-        }
-      });
-    }
-
-    // Monkey patch applyAvailabilityUI to start scheduler when needed
-    const originalApply = applyAvailabilityUI;
-    // (keep it simple: schedule once if online)
-    const observer = new MutationObserver(()=>{
-      // no op
-    });
-
-    // Hook: when entering home
-    const origSetScreen = setScreen;
-    setScreen = function(name){
-      origSetScreen(name);
-      if (name === "home"){
-        // update UI and scheduler logic
-        hydrateDashboard();
-        hydrateMapUI();
-        if (availability === "online" && eligible){
-          // scheduler might already exist; safe due to stop/start
-          startIncomingScheduler();
-        }
-      }
-      if (name === "earnings"){
-        syncEarningsUI();
-      }
-      if (name === "profile"){
-        syncProfileUI();
-      }
-      if (name === "settings"){
-        syncCoverageUI();
-      }
-      if (name === "map"){
-        hydrateMapUI();
-      }
-    };
-
-    // ---------- Keep animations updated in map screen ----------
-    // We rely on trip interval updating ambulance position when trip active.
-    // If user switches to map mid-trip, position is updated immediately by hydrateMapUI.
-
-    // ---------- Emergency “step-by-step” feel ----------
-    // Incoming UI includes requestType; siren triggers always and acceptance begins the real swipe flow.
-
-    // ---------- Final wiring for ride speed hint ----------
-    // Keep it extendable: if you later add real speed, replace ETA computation here.
-  </script>
-</body>
+  }, 1600);
+</script>
 </html>
