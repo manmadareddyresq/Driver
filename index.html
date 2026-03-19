@@ -3209,4 +3209,19 @@
     try { setScreen("login"); } catch(e) {}
   }, 3500);
 </script>
+  <script>
+  // Force app to continue to login if session logic fails
+  setTimeout(() => {
+    try {
+      const s = loadJSON(STORE_SESSION, null);
+      if (s && s.phone && typeof startAppFromSession === "function") {
+        startAppFromSession(s);
+      } else {
+        setScreen("login");
+      }
+    } catch (e) {
+      setScreen("login");
+    }
+  }, 50);
+</script>
 </html>
