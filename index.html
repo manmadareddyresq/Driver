@@ -2,294 +2,408 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ResQ Driver | Emergency Response v2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>ResQ Driver | Emergency Response Unit</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --resq-red: #E53935;
-            --resq-dark: #0D1B2A;
-            --resq-green: #00C853;
-            --resq-gray: #F4F7F6;
+            --primary: #E53935;
+            --secondary: #0D1B2A;
+            --success: #00C853;
+            --warning: #FFAB00;
+            --bg: #F8F9FA;
+            --white: #FFFFFF;
             --glass: rgba(255, 255, 255, 0.9);
-            --warning-amber: #FFAB00;
+            --shadow: 0 12px 40px rgba(0,0,0,0.12);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
 
         body {
-            background-color: #0a0a0a;
+            background-color: #0F172A;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            color: var(--resq-dark);
+            color: var(--secondary);
+            overflow: hidden;
         }
 
-        /* Device Frame */
-        .device-container {
-            width: 385px;
-            height: 844px;
-            background: var(--resq-gray);
-            border-radius: 40px;
-            border: 12px solid #1a1a1a;
+        /* Phone Frame for Desktop */
+        .app-container {
+            width: 100%;
+            height: 100vh;
+            max-width: 414px;
+            max-height: 896px;
+            background: var(--bg);
             position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+            box-shadow: 0 0 100px rgba(0,0,0,0.5);
         }
 
-        /* Header with Hospital Context */
-        header {
-            background: white;
-            padding: 45px 20px 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #eee;
-            z-index: 20;
+        @media (min-width: 500px) {
+            .app-container {
+                border: 12px solid #1e293b;
+                border-radius: 45px;
+                height: 90vh;
+            }
         }
 
-        .hosp-info h4 { font-size: 13px; font-weight: 800; color: var(--resq-dark); }
-        .hosp-info p { font-size: 10px; color: #888; letter-spacing: 1px; }
-
-        .live-indicator {
-            background: #ffebee;
-            color: var(--resq-red);
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 10px;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        /* Main Viewport */
-        main { flex: 1; position: relative; background: #222; overflow: hidden; }
-        
-        #map-bg {
-            width: 100%;
-            height: 100%;
-            background: url('https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/78.39,17.49,15,0/385x600?access_token=none');
-            background-size: cover;
-            filter: brightness(0.7);
-            transition: 0.5s ease;
-        }
-
-        /* Patient Vitals Card (Hidden until active) */
-        #vitals-card {
-            position: absolute;
-            top: 20px;
-            left: 15px;
-            right: 15px;
-            background: var(--glass);
-            backdrop-filter: blur(15px);
-            border-radius: 20px;
-            padding: 15px;
-            display: none;
-            border: 1px solid rgba(255,255,255,0.4);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            z-index: 30;
-        }
-
-        .vital-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .vital-tag {
-            background: rgba(0,0,0,0.05);
-            padding: 8px;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .vital-tag label { font-size: 9px; color: #666; font-weight: 700; display: block; }
-        .vital-tag value { font-size: 13px; font-weight: 800; color: var(--resq-red); }
-
-        /* Emergency Flash Mode */
-        #dispatch-screen {
+        /* Screens */
+        .screen {
             position: absolute;
             inset: 0;
-            background: var(--resq-red);
-            z-index: 100;
             display: none;
             flex-direction: column;
-            justify-content: center;
-            padding: 30px;
-            color: white;
-            animation: urgentBlink 1s infinite alternate;
+            z-index: 10;
+            background: var(--bg);
         }
 
-        @keyframes urgentBlink {
-            from { background: #D32F2F; }
-            to { background: #B71C1C; }
+        .screen.active { display: flex; animation: fadeIn 0.4s ease-out; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Auth Styles */
+        .auth-content { padding: 40px 24px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .logo-mark { width: 80px; height: 80px; background: var(--primary); border-radius: 22px; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(229, 57, 53, 0.4); }
+        
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block; text-transform: uppercase; }
+        .input-field { width: 100%; padding: 16px; border-radius: 14px; border: 2px solid #e2e8f0; font-size: 16px; font-weight: 600; transition: 0.3s; }
+        .input-field:focus { border-color: var(--primary); outline: none; background: white; }
+
+        /* Dashboard Styles */
+        header { padding: 60px 20px 20px; background: white; border-bottom: 1px solid #f1f5f9; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .location-chip { display: flex; align-items: center; gap: 6px; background: #fee2e2; color: var(--primary); padding: 6px 12px; border-radius: 100px; font-size: 12px; font-weight: 800; }
+
+        .hospital-card { background: var(--secondary); color: white; padding: 20px; border-radius: 24px; margin: 0 20px 20px; position: relative; overflow: hidden; }
+        .hospital-card::after { content: ''; position: absolute; right: -20px; bottom: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
+        .stat-box { background: white; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+        .stat-box h3 { font-size: 24px; font-weight: 800; margin-top: 5px; }
+        .stat-box p { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; }
+
+        /* Map & Dispatch UI */
+        .map-view { flex: 1; background: #e2e8f0; position: relative; background-image: url('https://api.mapbox.com/styles/v1/mapbox/light-v10/static/78.39,17.48,14,0/414x600?access_token=none'); background-size: cover; }
+        
+        #incoming-dispatch {
+            position: absolute; inset: 0; background: rgba(229, 57, 53, 0.98); z-index: 100;
+            display: none; flex-direction: column; justify-content: center; padding: 30px; color: white;
+            animation: pulseBg 1.5s infinite;
+        }
+        @keyframes pulseBg { 0% { background: rgba(229, 57, 53, 0.98); } 50% { background: #b91c1c; } 100% { background: rgba(229, 57, 53, 0.98); } }
+
+        .dispatch-card { background: white; border-radius: 30px; padding: 25px; color: var(--secondary); box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+
+        /* Swipe Button Component */
+        .swipe-container {
+            width: 100%; height: 65px; background: #f1f5f9; border-radius: 100px; position: relative;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; margin-top: 20px;
+        }
+        .swipe-text { font-weight: 800; font-size: 14px; color: #64748b; z-index: 1; pointer-events: none; }
+        .swipe-handle {
+            position: absolute; left: 5px; width: 55px; height: 55px; background: var(--primary);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;
+            transition: transform 0.1s; z-index: 2;
         }
 
-        .confirm-box {
-            background: white;
-            border-radius: 30px;
-            padding: 25px;
-            color: var(--resq-dark);
-            transform: translateY(20px);
+        /* Bottom Nav */
+        nav {
+            background: white; padding: 20px 30px 35px; display: flex; justify-content: space-between;
+            border-top: 1px solid #f1f5f9;
         }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; cursor: pointer; transition: 0.3s; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item span { font-size: 10px; font-weight: 700; }
 
-        /* Action Panel */
-        .bottom-ui {
-            background: white;
-            padding: 25px;
-            border-radius: 35px 35px 0 0;
-            z-index: 40;
+        /* Success Screen */
+        .hero-screen {
+            background: var(--success); color: white; text-align: center; justify-content: center; padding: 40px;
         }
 
         .btn {
-            width: 100%;
-            padding: 20px;
-            border: none;
-            border-radius: 20px;
-            font-size: 16px;
-            font-weight: 800;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%; padding: 18px; border: none; border-radius: 16px; font-size: 16px;
+            font-weight: 800; cursor: pointer; transition: 0.3s;
         }
-
-        .btn-emergency { background: var(--resq-red); color: white; }
-        .btn-finish { background: var(--resq-green); color: white; }
-        .btn-ghost { background: #f5f5f5; color: #555; margin-bottom: 12px; }
-
-        /* Navigation Route Info */
-        .route-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .route-info h2 { font-size: 20px; font-weight: 800; }
-        .route-info p { font-size: 12px; color: #888; font-weight: 600; }
-
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-dark { background: var(--secondary); color: white; }
     </style>
 </head>
 <body>
 
-<div class="device-container">
-    <header>
-        <div class="hosp-info">
-            <h4>APOLLO HOSPITALS</h4>
-            <p>KPHB COLONY • UNIT 4</p>
-        </div>
-        <div class="live-indicator">
-            <i data-lucide="radio" size="14"></i> LIVE GPS
-        </div>
-    </header>
+<div class="app-container">
 
-    <main>
-        <div id="map-bg"></div>
+    <div id="screen-auth" class="screen active">
+        <div class="auth-content">
+            <div class="logo-mark"><i data-lucide="ambulance" color="white" size="40"></i></div>
+            <h1 style="font-size: 32px; font-weight: 800; margin-bottom: 8px;">ResQ Driver</h1>
+            <p style="color: #64748b; font-weight: 500; margin-bottom: 40px;">Emergency Response Unit Login</p>
+            
+            <div class="input-group">
+                <label>Mobile Number</label>
+                <input type="tel" class="input-field" placeholder="+91 98765 43210" id="login-phone">
+            </div>
+            <button class="btn btn-primary" onclick="showOTP()">Request Secure Access</button>
+        </div>
+    </div>
 
-        <div id="vitals-card">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div id="screen-otp" class="screen">
+        <div class="auth-content">
+            <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 12px;">Verification</h2>
+            <p style="color: #64748b; margin-bottom: 30px;">Enter the 4-digit code sent to your unit.</p>
+            <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 30px;">
+                <input type="text" maxlength="1" class="input-field" style="width: 60px; text-align: center;" value="4">
+                <input type="text" maxlength="1" class="input-field" style="width: 60px; text-align: center;" value="2">
+                <input type="text" maxlength="1" class="input-field" style="width: 60px; text-align: center;" value="9">
+                <input type="text" maxlength="1" class="input-field" style="width: 60px; text-align: center;" value="0">
+            </div>
+            <button class="btn btn-primary" onclick="verifyOTP()">Verify Identity</button>
+        </div>
+    </div>
+
+    <div id="screen-dash" class="screen">
+        <header>
+            <div class="header-top">
+                <div class="location-chip"><i data-lucide="map-pin" size="14"></i> KPHB, Kukatpally</div>
+                <div id="status-toggle" onclick="toggleStatus()" style="cursor: pointer;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 12px; color: var(--success);">
+                        <div style="width: 8px; height: 8px; background: var(--success); border-radius: 50%;"></div> ONLINE
+                    </div>
+                </div>
+            </div>
+            <h2 style="font-size: 22px; font-weight: 800;">Welcome, Captain</h2>
+        </header>
+
+        <div class="hospital-card">
+            <p style="font-size: 10px; font-weight: 800; opacity: 0.7; letter-spacing: 1px; margin-bottom: 5px;">ASSIGNED HOSPITAL</p>
+            <h3 style="font-size: 18px; font-weight: 800;">Apollo Hospital, Kukatpally</h3>
+            <div style="margin-top: 15px; font-size: 12px; font-weight: 600; opacity: 0.8;">Unit ID: AMB-HYD-702</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <p>Today</p>
+                <h3>08</h3>
+            </div>
+            <div class="stat-box">
+                <p>Salary</p>
+                <h3>₹42,500</h3>
+            </div>
+        </div>
+
+        <div style="padding: 20px; flex: 1;">
+            <p style="font-weight: 800; font-size: 14px; margin-bottom: 15px;">Live Fleet Status</p>
+            <div style="background: white; border-radius: 20px; padding: 20px; text-align: center; border: 2px dashed #e2e8f0;">
+                <i data-lucide="navigation" color="#cbd5e1" style="margin-bottom: 10px;"></i>
+                <p style="color: #94a3b8; font-size: 13px; font-weight: 600;">Scanning for emergency broadcasts in Kukatpally area...</p>
+                <button class="btn btn-dark" style="margin-top: 15px; padding: 12px;" onclick="simulateDispatch()">Simulate Dispatch</button>
+            </div>
+        </div>
+
+        <nav>
+            <div class="nav-item active"><i data-lucide="home"></i><span>Home</span></div>
+            <div class="nav-item"><i data-lucide="activity"></i><span>History</span></div>
+            <div class="nav-item"><i data-lucide="wallet"></i><span>Payout</span></div>
+            <div class="nav-item" onclick="logout()"><i data-lucide="user"></i><span>Profile</span></div>
+        </nav>
+    </div>
+
+    <div id="screen-trip" class="screen">
+        <div class="map-view">
+            <div style="position: absolute; top: 60px; left: 20px; right: 20px; background: var(--glass); backdrop-filter: blur(10px); padding: 15px; border-radius: 18px; display: flex; gap: 12px; align-items: center; border: 1px solid white;">
+                <div style="background: var(--primary); padding: 10px; border-radius: 12px;"><i data-lucide="navigation-2" color="white" size="20"></i></div>
                 <div>
-                    <p style="font-size: 10px; font-weight: 800; color: var(--resq-red);">PRE-ARRIVAL VITALS</p>
-                    <h3 id="patient-name-display" style="font-size: 16px;">Srinivas Rao (62M)</h3>
-                </div>
-                <div style="text-align: right;">
-                    <span style="font-size: 10px; background: #000; color: #fff; padding: 2px 6px; border-radius: 4px;">B+ VE</span>
+                    <p style="font-size: 14px; font-weight: 800;" id="nav-instruction">Head North on JNTU Road</p>
+                    <p style="font-size: 11px; color: #64748b; font-weight: 600;">1.2 km to Patient Pickup</p>
                 </div>
             </div>
-            <div class="vital-grid">
-                <div class="vital-tag"><label>HEART RATE</label><value>112 BPM</value></div>
-                <div class="vital-tag"><label>SPO2</label><value>91%</value></div>
-                <div class="vital-tag"><label>BP</label><value>140/95</value></div>
+
+            <div id="incoming-dispatch">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <i data-lucide="bell-ring" size="64" style="margin-bottom: 15px;"></i>
+                    <h1 style="font-size: 32px; font-weight: 800;">EMERGENCY</h1>
+                </div>
+                <div class="dispatch-card">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <span style="background: #fee2e2; color: var(--primary); padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800;">CRITICAL LEVEL 1</span>
+                        <span id="dispatch-timer" style="font-weight: 800; color: var(--primary);">29s</span>
+                    </div>
+                    <p style="font-size: 11px; color: #64748b; font-weight: 700;">PICKUP</p>
+                    <p style="font-size: 16px; font-weight: 800; margin-bottom: 15px;">Miyapur Metro Station, Exit A</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
+                        <div><p style="font-size: 10px; color: #64748b;">DISTANCE</p><p style="font-weight: 800;">2.4 KM</p></div>
+                        <div><p style="font-size: 10px; color: #64748b;">EST. TIME</p><p style="font-weight: 800;">5 MINS</p></div>
+                    </div>
+                    <button class="btn btn-primary" style="margin-top: 20px;" onclick="acceptTrip()">ACCEPT EMERGENCY</button>
+                    <button style="width: 100%; border: none; background: none; color: #94a3b8; font-weight: 700; font-size: 13px; margin-top: 15px;" onclick="cancelDispatch()">Ignore</button>
+                </div>
             </div>
         </div>
 
-        <div id="dispatch-screen">
-            <div style="text-align: center; margin-bottom: 40px;">
-                <i data-lucide="alert-octagon" size="60" style="margin-bottom: 10px;"></i>
-                <h1 style="font-size: 32px; letter-spacing: -1px;">EMERGENCY<br>DETECTION</h1>
-            </div>
-            <div class="confirm-box">
-                <p style="font-size: 11px; font-weight: 800; color: #999; margin-bottom: 5px;">PICKUP LOCATION</p>
-                <h2 style="font-size: 18px; line-height: 1.2; margin-bottom: 15px;">Miyapur Metro Station,<br>Main Entrance</h2>
-                <div style="display: flex; gap: 20px; padding: 15px 0; border-top: 1px solid #eee;">
-                    <div><label style="font-size: 9px; display: block; color: #888;">ETA</label><b>5 MINS</b></div>
-                    <div><label style="font-size: 9px; display: block; color: #888;">DIST</label><b>2.4 KM</b></div>
+        <div class="bottom-ui" style="background: white; padding: 25px; border-radius: 30px 30px 0 0; z-index: 20;">
+            <div id="trip-phase-ui">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <p id="trip-status-label" style="font-size: 11px; font-weight: 700; color: #64748b;">CURRENT PHASE</p>
+                        <h3 id="trip-phase-title" style="font-size: 18px; font-weight: 800;">Navigating to Pickup</h3>
+                    </div>
+                    <div style="text-align: right;">
+                        <i data-lucide="phone-call" color="#64748b" style="cursor: pointer;"></i>
+                    </div>
                 </div>
-                <button class="btn btn-emergency" onclick="acceptMission()">ACCEPT DISPATCH</button>
+                
+                <div id="swipe-action" class="swipe-container" onmousedown="startSwipe(event)" ontouchstart="startSwipe(event)">
+                    <div class="swipe-handle" id="swipe-handle"><i data-lucide="chevrons-right"></i></div>
+                    <span class="swipe-text" id="swipe-text">SWIPE TO CONFIRM ARRIVAL</span>
+                </div>
             </div>
         </div>
-    </main>
+    </div>
 
-    <section class="bottom-ui">
-        <div id="idle-state">
-            <div style="text-align: center; padding: 10px 0 25px;">
-                <div style="width: 50px; height: 4px; background: #e0e0e0; margin: 0 auto 20px; border-radius: 10px;"></div>
-                <p style="font-weight: 700; color: #666; font-size: 14px;">Awaiting Emergency Request...</p>
-            </div>
-            <button class="btn btn-ghost" onclick="triggerDispatch()">SIMULATE DISPATCH</button>
+    <div id="screen-success" class="screen hero-screen">
+        <div style="background: rgba(255,255,255,0.2); width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 30px;">
+            <i data-lucide="heart" size="50" fill="white"></i>
         </div>
+        <h1 style="font-size: 36px; font-weight: 800; margin-bottom: 15px;">Real Hero ❤️</h1>
+        <p style="font-size: 18px; font-weight: 600; opacity: 0.9; margin-bottom: 40px;">Thank you for saving a life. The emergency team has taken over.</p>
+        
+        <div style="background: rgba(0,0,0,0.1); padding: 20px; border-radius: 20px; margin-bottom: 40px;">
+            <p style="font-size: 12px; font-weight: 700; margin-bottom: 10px;">MISSION SUMMARY</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div><small>RESPONSE TIME</small><br><b>4m 22s</b></div>
+                <div><small>DISTANCE</small><br><b>3.1 KM</b></div>
+            </div>
+        </div>
+        <button class="btn btn-dark" onclick="resetToHome()">Back to Dashboard</button>
+    </div>
 
-        <div id="active-state" style="display: none;">
-            <div class="route-info">
-                <div>
-                    <p>DESTINATION</p>
-                    <h2 id="route-text">En Route to Pickup</h2>
-                </div>
-                <div style="text-align: right;">
-                    <p>TOTAL TIME</p>
-                    <h2 style="color: var(--resq-red);">08:12</h2>
-                </div>
-            </div>
-            <button class="btn btn-emergency" id="main-action" onclick="progressTrip()">MARK: ARRIVED AT SITE</button>
-        </div>
-    </section>
 </div>
 
 <script>
+    // Global Logic
     lucide.createIcons();
-
-    let currentPhase = 0; // 0: Idle, 1: En Route, 2: At Site, 3: Transporting
-
-    function triggerDispatch() {
-        document.getElementById('dispatch-screen').style.display = 'flex';
+    
+    let currentTripStep = 0; // 0: To Patient, 1: Arrived, 2: To Hospital, 3: Arrived Hospital
+    const siren = new Audio('https://www.soundjay.com/buttons/beep-01a.mp3'); // Fallback sound
+    
+    // Auth Logic
+    function showOTP() {
+        switchScreen('screen-otp');
     }
 
-    function acceptMission() {
-        document.getElementById('dispatch-screen').style.display = 'none';
-        document.getElementById('idle-state').style.display = 'none';
-        document.getElementById('active-state').style.display = 'block';
-        document.getElementById('vitals-card').style.display = 'block';
-        document.getElementById('map-bg').style.filter = 'brightness(1)';
-        currentPhase = 1;
+    function verifyOTP() {
+        localStorage.setItem('resq_logged_in', 'true');
+        switchScreen('screen-dash');
     }
 
-    function progressTrip() {
-        const btn = document.getElementById('main-action');
-        const routeText = document.getElementById('route-text');
+    function logout() {
+        localStorage.removeItem('resq_logged_in');
+        switchScreen('screen-auth');
+    }
 
-        if (currentPhase === 1) {
-            currentPhase = 2;
-            btn.innerText = "START TRANSPORT TO HOSPITAL";
-            btn.style.background = "var(--resq-dark)";
-            routeText.innerText = "Patient On-Board";
-            alert("Patient vitals synced with Hospital Dashboard.");
-        } else if (currentPhase === 2) {
-            currentPhase = 3;
-            btn.innerText = "COMPLETE HANDOVER";
-            btn.style.background = "var(--resq-green)";
-            routeText.innerText = "Arriving at Apollo";
-        } else {
-            location.reload(); // End trip and reset demo
+    // Navigation Logic
+    function switchScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        lucide.createIcons();
+    }
+
+    // Emergency Flow Logic
+    function simulateDispatch() {
+        switchScreen('screen-trip');
+        document.getElementById('incoming-dispatch').style.display = 'flex';
+        // Play Siren Logic (Simulated)
+        console.log("🔊 Playing Siren...");
+    }
+
+    function acceptTrip() {
+        document.getElementById('incoming-dispatch').style.display = 'none';
+        currentTripStep = 0;
+        updateSwipeUI();
+    }
+
+    // Swipe Component Logic
+    let isDragging = false;
+    let startX = 0;
+    const handle = document.getElementById('swipe-handle');
+    const container = document.getElementById('swipe-action');
+
+    function startSwipe(e) {
+        isDragging = true;
+        startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+        document.addEventListener('mousemove', onSwipeMove);
+        document.addEventListener('mouseup', onSwipeEnd);
+        document.addEventListener('touchmove', onSwipeMove);
+        document.addEventListener('touchend', onSwipeEnd);
+    }
+
+    function onSwipeMove(e) {
+        if (!isDragging) return;
+        let x = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+        let moveX = x - startX;
+        let max = container.offsetWidth - handle.offsetWidth - 10;
+        
+        if (moveX < 0) moveX = 0;
+        if (moveX > max) moveX = max;
+        
+        handle.style.transform = `translateX(${moveX}px)`;
+        
+        if (moveX === max) {
+            onSwipeComplete();
         }
     }
+
+    function onSwipeEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        if (handle.style.transform !== `translateX(${container.offsetWidth - handle.offsetWidth - 10}px)`) {
+            handle.style.transition = '0.3s';
+            handle.style.transform = 'translateX(0px)';
+            setTimeout(() => handle.style.transition = '0s', 300);
+        }
+    }
+
+    function onSwipeComplete() {
+        isDragging = false;
+        handle.style.transform = 'translateX(0px)';
+        currentTripStep++;
+        updateSwipeUI();
+    }
+
+    function updateSwipeUI() {
+        const title = document.getElementById('trip-phase-title');
+        const text = document.getElementById('swipe-text');
+        const nav = document.getElementById('nav-instruction');
+
+        if (currentTripStep === 1) {
+            title.innerText = "Arrived at Pickup";
+            text.innerText = "SWIPE TO START TRANSPORT";
+            nav.innerText = "Load Patient & Secure Unit";
+        } else if (currentTripStep === 2) {
+            title.innerText = "Patient Onboard";
+            text.innerText = "SWIPE TO CONFIRM HANDOVER";
+            nav.innerText = "Directing to Apollo ER Entrance";
+            alert("Hospital Notified: Preparing ER Team & Stretcher.");
+        } else if (currentTripStep === 3) {
+            switchScreen('screen-success');
+        }
+    }
+
+    function resetToHome() {
+        currentTripStep = 0;
+        switchScreen('screen-dash');
+    }
+
+    // Auto-login Check
+    window.onload = () => {
+        if (localStorage.getItem('resq_logged_in')) switchScreen('screen-dash');
+    };
 </script>
+
 </body>
 </html>
