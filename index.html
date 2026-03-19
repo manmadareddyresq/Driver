@@ -3,528 +3,433 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ResQ Driver | Emergency Response Unit</title>
+    <title>ResQ Driver | Emergency Unit</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
     <style>
         :root {
-            --resq-red: #E53935;
-            --resq-dark: #0D1B2A;
-            --resq-green: #00C853;
-            --resq-blue: #1E88E5;
-            --bg: #F8F9FA;
+            --primary: #E53935;
+            --primary-dark: #B71C1C;
+            --secondary: #0D1B2A;
+            --success: #00C853;
+            --bg: #F0F2F5;
             --white: #FFFFFF;
+            --text-main: #1A202C;
+            --text-muted: #718096;
             --glass: rgba(255, 255, 255, 0.9);
-            --shadow: 0 10px 30px rgba(13, 27, 42, 0.1);
+            --shadow: 0 20px 40px rgba(0,0,0,0.08);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
-        body, html { width: 100%; height: 100%; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; }
-
-        /* Centered Mobile Layout */
-        #app-viewport {
-            width: 100%;
-            max-width: 430px; /* iPhone 15 Pro Max Width */
-            height: 100vh;
-            background: var(--bg);
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        
+        body { 
+            background-color: var(--bg); 
+            color: var(--text-main); 
+            overflow: hidden; 
+            height: 100vh; 
+            width: 100vw;
         }
 
-        /* Utility Classes */
-        .hidden { display: none !important; }
-        .flex-center { display: flex; align-items: center; justify-content: center; }
+        /* Fullscreen App Container - No Black Frame */
+        #resq-app {
+            width: 100%;
+            max-width: 480px; /* Limits width on desktop for app feel, but no border */
+            height: 100%;
+            margin: 0 auto;
+            background: var(--white);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 100px rgba(0,0,0,0.05);
+        }
 
-        /* Screen Transitions */
         .screen {
             position: absolute;
             inset: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--bg);
-            z-index: 10;
             display: none;
             flex-direction: column;
+            background: var(--bg);
+            z-index: 10;
         }
-        .screen.active { display: flex; }
 
-        /* Login & OTP Styles */
-        .auth-content { padding: 40px 24px; flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; }
-        .brand-icon { width: 80px; height: 80px; background: var(--resq-red); border-radius: 22px; margin: 0 auto 30px; box-shadow: 0 10px 20px rgba(229, 57, 53, 0.3); }
-        
-        .input-wrap { text-align: left; margin-bottom: 24px; }
-        .input-wrap label { font-size: 12px; font-weight: 800; color: #64748b; margin-bottom: 8px; display: block; text-transform: uppercase; }
-        .main-input { width: 100%; padding: 18px; border-radius: 16px; border: 2px solid #e2e8f0; font-size: 18px; font-weight: 700; transition: 0.3s; }
-        .main-input:focus { border-color: var(--resq-red); outline: none; box-shadow: 0 0 0 4px rgba(229, 57, 53, 0.1); }
-        
-        .otp-container { display: flex; gap: 8px; justify-content: center; margin: 20px 0; }
-        .otp-input { width: 50px; height: 60px; border-radius: 12px; border: 2px solid #e2e8f0; text-align: center; font-size: 24px; font-weight: 800; }
-        .otp-input:focus { border-color: var(--resq-red); outline: none; }
+        .screen.active { display: flex; animation: screenFade 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        @keyframes screenFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .btn-action { 
+        /* AUTHENTICATION UI */
+        .auth-wrapper { padding: 40px 24px; flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; background: white; }
+        .logo-box { width: 84px; height: 84px; background: var(--primary); border-radius: 24px; margin: 0 auto 32px; display: flex; align-items: center; justify-content: center; box-shadow: 0 15px 30px rgba(229, 57, 53, 0.25); }
+        
+        .field-group { text-align: left; margin-bottom: 24px; }
+        .field-label { font-size: 12px; font-weight: 800; color: var(--text-muted); margin-bottom: 10px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+        .input-main { width: 100%; padding: 18px; border-radius: 16px; border: 2px solid #E2E8F0; font-size: 18px; font-weight: 700; transition: 0.3s; background: #F8FAFC; }
+        .input-main:focus { border-color: var(--primary); outline: none; background: white; box-shadow: 0 0 0 4px rgba(229, 57, 53, 0.1); }
+        
+        /* OTP Grid */
+        .otp-grid { display: flex; gap: 10px; justify-content: center; margin: 25px 0; }
+        .otp-box { width: 48px; height: 60px; border-radius: 14px; border: 2px solid #E2E8F0; text-align: center; font-size: 22px; font-weight: 800; background: #F8FAFC; }
+        .otp-box:focus { border-color: var(--primary); background: white; outline: none; }
+
+        .btn-prime { 
             width: 100%; padding: 20px; border: none; border-radius: 18px; font-size: 16px; font-weight: 800; 
             cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;
+            background: var(--primary); color: white;
         }
-        .btn-red { background: var(--resq-red); color: white; }
-        .btn-red:disabled { background: #fca5a5; cursor: not-allowed; }
+        .btn-prime:disabled { background: #E2E8F0; color: #94A3B8; cursor: not-allowed; }
 
-        /* Dashboard & Header */
-        header { padding: 50px 20px 20px; background: white; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
-        .header-left h2 { font-size: 14px; color: #64748b; font-weight: 600; }
-        .header-left p { font-size: 18px; font-weight: 800; color: var(--resq-dark); }
-        .support-btn { background: #f1f5f9; padding: 12px; border-radius: 14px; cursor: pointer; color: var(--resq-dark); }
-
-        .top-bar { padding: 10px 20px; background: white; display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: #94a3b8; }
-
-        /* Online Status Card */
-        .status-hero { margin: 20px; background: var(--resq-dark); border-radius: 28px; padding: 25px; color: white; position: relative; overflow: hidden; }
-        .status-hero::after { content: ''; position: absolute; right: -20px; bottom: -20px; width: 120px; height: 120px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+        /* DASHBOARD */
+        header { padding: 50px 20px 20px; background: white; border-bottom: 1px solid #EDF2F7; display: flex; justify-content: space-between; align-items: flex-end; }
+        .user-info h2 { font-size: 14px; color: var(--text-muted); font-weight: 600; }
+        .user-info p { font-size: 20px; font-weight: 800; }
         
-        .pulse-box { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-        .pulse { width: 10px; height: 10px; background: var(--resq-green); border-radius: 50%; animation: blink 1.5s infinite; }
-        @keyframes blink { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+        .support-circle { width: 48px; height: 48px; background: #F1F5F9; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--secondary); transition: 0.2s; }
+        .support-circle:active { transform: scale(0.9); background: #E2E8F0; }
 
-        /* Earnings & Stats Screen */
-        .earnings-card { background: white; margin: 0 20px 15px; padding: 20px; border-radius: 22px; border: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
-        .earnings-card h4 { font-size: 24px; font-weight: 800; color: var(--resq-dark); }
-        .earnings-card span { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; }
+        .status-card { margin: 20px; background: var(--secondary); color: white; padding: 25px; border-radius: 30px; position: relative; overflow: hidden; box-shadow: 0 15px 30px rgba(13, 27, 42, 0.15); }
+        .status-card::after { content: ''; position: absolute; right: -20px; top: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.04); border-radius: 50%; }
+        
+        .pulse-indicator { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; font-weight: 800; color: var(--success); }
+        .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        /* Emergency Request Overlay */
-        #emergency-alert {
-            position: absolute; inset: 0; z-index: 1000; background: var(--resq-red);
+        /* EARNINGS/STATS SECTION */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
+        .mini-card { background: white; padding: 20px; border-radius: 24px; border: 1px solid #EDF2F7; }
+        .mini-card span { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+        .mini-card h4 { font-size: 22px; font-weight: 800; margin-top: 5px; }
+
+        /* MAP & EMERGENCY */
+        .map-viewport { flex: 1; background: #E2E8F0; position: relative; background-image: url('https://api.mapbox.com/styles/v1/mapbox/light-v10/static/78.39,17.48,14,0/500x800?access_token=none'); background-size: cover; }
+        
+        #dispatch-overlay {
+            position: absolute; inset: 0; background: var(--primary); z-index: 1000;
             display: none; flex-direction: column; justify-content: center; padding: 30px; color: white;
-            animation: urgentBG 0.8s infinite alternate;
+            animation: alertFlash 0.6s infinite alternate;
         }
-        @keyframes urgentBG { from { background: #E53935; } to { background: #B71C1C; } }
+        @keyframes alertFlash { from { background: #E53935; } to { background: #D32F2F; } }
 
-        .alert-modal { background: white; border-radius: 35px; padding: 30px; color: var(--resq-dark); box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+        .dispatch-modal { background: white; border-radius: 35px; padding: 30px; color: var(--secondary); box-shadow: 0 30px 60px rgba(0,0,0,0.3); }
 
-        /* Map Simulation */
-        .map-container { flex: 1; background: #e2e8f0; position: relative; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; }
-        .driver-marker { 
-            width: 40px; height: 40px; background: var(--resq-blue); border-radius: 50%; 
-            position: absolute; display: flex; align-items: center; justify-content: center;
-            border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: all 1s linear;
+        /* THE SWIPE BUTTON */
+        .swipe-area { width: 100%; height: 76px; background: #F1F5F9; border-radius: 100px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid #E2E8F0; margin-top: 20px; }
+        .swipe-label { font-weight: 800; font-size: 14px; color: #94A3B8; z-index: 1; pointer-events: none; }
+        .swipe-handle { position: absolute; left: 6px; width: 64px; height: 64px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; z-index: 2; box-shadow: 0 4px 15px rgba(229, 57, 53, 0.3); transition: transform 0.1s; }
+
+        /* MIDWAY POPUP */
+        #midway-toast {
+            position: absolute; top: 100px; left: 20px; right: 20px; background: var(--secondary); color: white;
+            padding: 20px; border-radius: 24px; z-index: 2000; display: none; animation: slideDown 0.5s ease-out;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
         }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        /* Swipe Button */
-        .swipe-track { 
-            width: 100%; height: 75px; background: #f1f5f9; border-radius: 100px; position: relative; 
-            display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid #e2e8f0;
-        }
-        .swipe-handle { 
-            position: absolute; left: 6px; width: 63px; height: 63px; background: var(--resq-red); 
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; z-index: 2;
-        }
-        .swipe-text { font-weight: 800; font-size: 14px; color: #94a3b8; z-index: 1; pointer-events: none; }
+        /* BOTTOM NAV */
+        nav { background: white; padding: 15px 35px 35px; display: flex; justify-content: space-between; border-top: 1px solid #EDF2F7; }
+        .nav-link { display: flex; flex-direction: column; align-items: center; gap: 5px; color: #CBD5E0; cursor: pointer; }
+        .nav-link.active { color: var(--primary); }
+        .nav-link span { font-size: 10px; font-weight: 800; }
 
-        /* Bottom Nav */
-        nav { background: white; padding: 15px 30px 35px; display: flex; justify-content: space-between; border-top: 1px solid #f1f5f9; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #cbd5e1; cursor: pointer; transition: 0.3s; }
-        .nav-item.active { color: var(--resq-red); }
-        .nav-item span { font-size: 10px; font-weight: 800; }
-
-        /* Shake Animation */
-        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-
-        /* Midway Alert Overlay */
-        #midway-alert {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 85%; background: var(--resq-dark); border-radius: 25px; padding: 30px;
-            color: white; text-align: center; z-index: 2000; display: none; box-shadow: 0 30px 60px rgba(0,0,0,0.5);
-        }
-
-        /* Hero Screen */
-        #screen-hero { background: var(--resq-green); color: white; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; }
+        /* HERO SCREEN */
+        .hero-view { background: var(--success); color: white; text-align: center; justify-content: center; padding: 40px; }
     </style>
 </head>
 <body>
 
-<div id="app-viewport">
+<div id="resq-app">
 
     <div id="screen-login" class="screen active">
-        <div class="auth-content">
-            <div class="brand-icon flex-center"><i data-lucide="cross" color="white" size="40"></i></div>
-            <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 8px;">Unit Login</h1>
-            <p style="color: #64748b; font-weight: 600; margin-bottom: 40px;">Enter your registered mobile number</p>
+        <div class="auth-wrapper">
+            <div class="logo-box"><i data-lucide="ambulance" color="white" size="42"></i></div>
+            <h1 style="font-size: 32px; font-weight: 800; margin-bottom: 8px;">ResQ Driver</h1>
+            <p style="color: var(--text-muted); font-weight: 600; margin-bottom: 48px;">Unit Authentication System</p>
             
-            <div class="input-wrap">
-                <label>Mobile Number</label>
-                <input type="tel" id="phone-input" class="main-input" placeholder="98XXXXXXXX" maxlength="10">
-                <p id="phone-error" style="color: var(--resq-red); font-size: 11px; margin-top: 8px; font-weight: 700; display: none;">Invalid number. Must be 10 digits.</p>
+            <div class="field-group">
+                <label class="field-label">Mobile Number</label>
+                <input type="tel" id="phone-field" class="input-main" placeholder="Enter 10 digits" maxlength="10">
+                <p id="phone-err" style="color: var(--primary); font-size: 11px; margin-top: 8px; font-weight: 700; display: none;">Please enter exactly 10 digits.</p>
             </div>
             
-            <button id="btn-login" class="btn-action btn-red" disabled onclick="handleLogin()">
-                Continue <i data-lucide="arrow-right" size="18"></i>
+            <button id="login-btn" class="btn-prime" disabled onclick="requestOTP()">
+                Verify Identity <i data-lucide="shield-check" size="20"></i>
             </button>
         </div>
     </div>
 
     <div id="screen-otp" class="screen">
-        <div class="auth-content">
-            <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 8px;">Verification</h1>
-            <p style="color: #64748b; font-weight: 600;">Enter the 6-digit code sent to your unit.</p>
+        <div class="auth-wrapper">
+            <h1 style="font-size: 26px; font-weight: 800; margin-bottom: 12px;">Enter Code</h1>
+            <p style="color: var(--text-muted); font-weight: 600;">Secure code sent to your unit.</p>
             
-            <div class="otp-container" id="otp-inputs">
-                <input type="tel" maxlength="1" class="otp-input">
-                <input type="tel" maxlength="1" class="otp-input">
-                <input type="tel" maxlength="1" class="otp-input">
-                <input type="tel" maxlength="1" class="otp-input">
-                <input type="tel" maxlength="1" class="otp-input">
-                <input type="tel" maxlength="1" class="otp-input">
+            <div class="otp-grid" id="otp-container">
+                <input type="tel" maxlength="1" class="otp-box">
+                <input type="tel" maxlength="1" class="otp-box">
+                <input type="tel" maxlength="1" class="otp-box">
+                <input type="tel" maxlength="1" class="otp-box">
+                <input type="tel" maxlength="1" class="otp-box">
+                <input type="tel" maxlength="1" class="otp-box">
             </div>
 
-            <div style="background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 30px;">
-                <p style="font-size: 13px; font-weight: 700; color: #64748b;">
-                    Demo OTP: <span id="demo-otp-val" style="color: var(--resq-red);">482931</span>
+            <div style="background: #F1F5F9; padding: 15px; border-radius: 12px; margin-bottom: 30px;">
+                <p style="font-size: 12px; font-weight: 700; color: #64748B;">
+                    Demo OTP: <span id="demo-code" style="color: var(--primary); font-size: 14px;">482931</span>
                 </p>
             </div>
             
-            <button class="btn-action btn-red" onclick="verifyOTP()">Verify Identity</button>
+            <button class="btn-prime" onclick="verifyCode()">Confirm Verification</button>
         </div>
     </div>
 
     <div id="screen-dash" class="screen">
-        <div class="top-bar">
-            <span>RESQ NETWORK • 5G</span>
-            <span id="battery-level">🔋 88%</span>
-        </div>
         <header>
-            <div class="header-left">
-                <h2>LOCATION</h2>
-                <p id="current-loc-text">KPHB, Kukatpally</p>
+            <div class="user-info">
+                <h2 id="battery-stat">🔋 94% • RESQ NETWORK</h2>
+                <p>Welcome, Capt. Rajesh</p>
             </div>
-            <div class="support-btn flex-center" onclick="callSupport()">
-                <i data-lucide="phone-call" size="20"></i>
-            </div>
+            <div class="support-circle" onclick="window.location.href='tel:8978257449'"><i data-lucide="phone"></i></div>
         </header>
 
-        <div class="status-hero">
-            <div class="pulse-box">
-                <div class="pulse"></div>
-                <span style="font-weight: 800; font-size: 12px;">SYSTEM ONLINE</span>
+        <div class="status-card">
+            <div class="pulse-indicator">
+                <div class="dot"></div> ONLINE
             </div>
-            <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">Ready for Dispatch</h3>
-            <p style="font-size: 13px; opacity: 0.8; font-weight: 500;">Scanning for nearby critical emergencies in KPHB Sector...</p>
+            <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 6px;">Available for Dispatch</h3>
+            <p style="font-size: 13px; opacity: 0.8; font-weight: 500;">Scanning KPHB, Kukatpally for critical emergencies...</p>
         </div>
 
-        <div style="padding: 0 20px; margin-bottom: 20px;">
-            <p style="font-size: 12px; font-weight: 800; color: #64748b; margin-bottom: 15px; letter-spacing: 1px;">ASSIGNED STATION</p>
-            <div style="background: white; padding: 20px; border-radius: 22px; display: flex; align-items: center; gap: 15px; border: 1px solid #f1f5f9;">
-                <div style="background: #ffebee; padding: 10px; border-radius: 12px;"><i data-lucide="building-2" color="#e53935"></i></div>
+        <div style="padding: 0 20px; margin-bottom: 25px;">
+            <p style="font-size: 12px; font-weight: 800; color: var(--text-muted); margin-bottom: 15px; letter-spacing: 1px;">MY STATION</p>
+            <div style="background: white; padding: 20px; border-radius: 25px; display: flex; align-items: center; gap: 15px; border: 1px solid #EDF2F7;">
+                <div style="background: #FFEBEE; padding: 12px; border-radius: 15px;"><i data-lucide="hospital" color="#E53935"></i></div>
                 <div>
                     <h4 style="font-size: 15px; font-weight: 800;">Apollo Hospital, Kukatpally</h4>
-                    <p style="font-size: 11px; color: #64748b; font-weight: 600;">Unit ID: RESQ-702-HYD</p>
+                    <p style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Ambulance: RESQ-702</p>
                 </div>
             </div>
         </div>
 
         <nav>
-            <div class="nav-item active"><i data-lucide="home"></i><span>Home</span></div>
-            <div class="nav-item" onclick="navTo('screen-earnings')"><i data-lucide="bar-chart-3"></i><span>Earnings</span></div>
-            <div class="nav-item" onclick="navTo('screen-settings')"><i data-lucide="settings"></i><span>Settings</span></div>
+            <div class="nav-link active"><i data-lucide="home"></i><span>Home</span></div>
+            <div class="nav-link" onclick="showStats()"><i data-lucide="bar-chart-3"></i><span>Earnings</span></div>
+            <div class="nav-link" onclick="showSettings()"><i data-lucide="settings"></i><span>Settings</span></div>
         </nav>
     </div>
 
-    <div id="screen-earnings" class="screen">
+    <div id="screen-stats" class="screen">
         <header>
-            <div class="header-left">
-                <h2>PERFORMANCE</h2>
-                <p>Monthly Stats</p>
-            </div>
-            <div class="support-btn flex-center" onclick="navTo('screen-dash')"><i data-lucide="x"></i></div>
-        </header>
-        
-        <div style="padding: 20px;">
-            <div class="earnings-card">
-                <div><span>Monthly Salary</span><h4>₹45,000</h4></div>
-                <i data-lucide="wallet" color="#0D1B2A"></i>
-            </div>
-            <div class="earnings-card">
-                <div><span>Completed Rides</span><h4>128</h4></div>
-                <i data-lucide="ambulance" color="#0D1B2A"></i>
-            </div>
-            <div class="earnings-card">
-                <div><span>Performance Score</span><h4>98%</h4></div>
-                <i data-lucide="star" color="#FFAB00" fill="#FFAB00"></i>
-            </div>
-        </div>
-    </div>
-
-    <div id="screen-settings" class="screen">
-        <header>
-            <div class="header-left">
-                <h2>PROFILE</h2>
-                <p>App Preferences</p>
-            </div>
-            <div class="support-btn flex-center" onclick="navTo('screen-dash')"><i data-lucide="x"></i></div>
+            <div class="user-info"><h2>PERFORMANCE</h2><p>Monthly Summary</p></div>
+            <div class="support-circle" onclick="navTo('screen-dash')"><i data-lucide="arrow-left"></i></div>
         </header>
         <div style="padding: 20px;">
-            <div style="background: white; border-radius: 20px; overflow: hidden; border: 1px solid #f1f5f9;">
-                <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9;">
-                    <span style="font-weight: 700;">Ambulance Siren</span>
-                    <i data-lucide="volume-2" color="#00C853"></i>
-                </div>
-                <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9;">
-                    <span style="font-weight: 700;">Haptic Feedback</span>
-                    <i data-lucide="toggle-right" color="#00C853"></i>
-                </div>
-                <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between; color: var(--resq-red);" onclick="logout()">
-                    <span style="font-weight: 700;">Logout</span>
-                    <i data-lucide="log-out"></i>
-                </div>
+            <div class="mini-card" style="margin-bottom: 15px; width: 100%;">
+                <span>Monthly Salary</span>
+                <h4 style="color: var(--success);">₹45,000.00</h4>
+            </div>
+            <div class="stats-grid">
+                <div class="mini-card"><span>Completed</span><h4>142</h4></div>
+                <div class="mini-card"><span>Rating</span><h4>4.98 ★</h4></div>
             </div>
         </div>
     </div>
 
     <div id="screen-trip" class="screen">
-        <div class="map-container" id="map-world">
-            <div class="driver-marker" id="driver-unit">
-                <i data-lucide="navigation-2" color="white" size="20"></i>
-            </div>
-            
-            <div style="position: absolute; top: 40px; left: 15px; right: 15px; background: var(--glass); backdrop-filter: blur(10px); padding: 15px; border-radius: 20px; display: flex; gap: 12px; align-items: center; box-shadow: var(--shadow);">
-                <div style="background: var(--resq-red); padding: 10px; border-radius: 12px;"><i data-lucide="navigation" color="white" size="20"></i></div>
+        <div class="map-viewport">
+            <div style="position: absolute; top: 60px; left: 20px; right: 20px; background: var(--glass); backdrop-filter: blur(12px); padding: 18px; border-radius: 22px; display: flex; gap: 15px; align-items: center; box-shadow: var(--shadow);">
+                <div style="background: var(--primary); padding: 12px; border-radius: 15px;"><i data-lucide="navigation" color="white" size="24"></i></div>
                 <div>
-                    <p id="trip-nav-text" style="font-size: 15px; font-weight: 800;">Proceed to Pickup Point</p>
-                    <p style="font-size: 11px; color: #64748b; font-weight: 600;">Fastest route via Main Rd • 1.2 km</p>
+                    <p id="nav-instruction" style="font-size: 15px; font-weight: 800;">Heading to Pickup Point</p>
+                    <p style="font-size: 12px; color: var(--text-muted); font-weight: 600;">JNTU Road • 1.4km away</p>
+                </div>
+            </div>
+
+            <div id="midway-toast">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <i data-lucide="check-circle" color="#00C853"></i>
+                    <div>
+                        <b style="font-size: 14px;">HOSPITAL ALERT</b>
+                        <p style="font-size: 12px; opacity: 0.9;">Staff ready with stretchers. Doctor at Gate 2.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="dispatch-overlay">
+                <div class="dispatch-modal">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                        <span style="background: #FFEBEE; color: var(--primary); padding: 6px 12px; border-radius: 10px; font-size: 11px; font-weight: 800;">CRITICAL LEVEL 1</span>
+                        <b id="alert-timer" style="color: var(--primary);">25s</b>
+                    </div>
+                    <p style="font-size: 11px; color: var(--text-muted); font-weight: 800; margin-bottom: 4px;">PICKUP LOCATION</p>
+                    <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 25px;">Miyapur Metro Station, Entrance C</h2>
+                    <button class="btn-prime" onclick="acceptEmergency()">ACCEPT DISPATCH</button>
                 </div>
             </div>
         </div>
 
-        <div style="background: white; padding: 30px; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 30px rgba(0,0,0,0.05);">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-                <h3 id="trip-status-title" style="font-size: 20px; font-weight: 800;">Navigating to Patient</h3>
-                <span id="trip-triage" style="background: #ffebee; color: var(--resq-red); padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 800;">CRITICAL</span>
-            </div>
-            
-            <div id="swipe-ride-action" class="swipe-track">
-                <div id="swipe-knob" class="swipe-handle"><i data-lucide="chevrons-right"></i></div>
-                <span id="swipe-label" class="swipe-text">SWIPE TO ARRIVE</span>
+        <div style="background: white; padding: 30px; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.05);">
+            <h3 id="trip-status" style="font-size: 20px; font-weight: 800;">En Route to Patient</h3>
+            <div id="swipe-ride" class="swipe-area">
+                <div id="swipe-btn" class="swipe-handle"><i data-lucide="chevrons-right"></i></div>
+                <span id="swipe-txt" class="swipe-label">SWIPE TO ARRIVE</span>
             </div>
         </div>
     </div>
 
-    <div id="emergency-alert">
-        <div class="alert-modal">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                <span style="background: #ffebee; color: var(--resq-red); padding: 5px 12px; border-radius: 10px; font-size: 11px; font-weight: 800;">PRIORITY ALPHA</span>
-                <span style="font-weight: 800; color: #64748b;" id="alert-timer">25s</span>
-            </div>
-            <p style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Pickup Location</p>
-            <h2 style="font-size: 22px; font-weight: 800; margin: 5px 0 20px 0;">Miyapur Metro Station,<br>Exit Gate 3</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; border-top: 1px solid #f1f5f9; padding-top: 20px; margin-bottom: 30px;">
-                <div><small style="color: #64748b; font-size: 10px; font-weight: 700;">DESTINATION</small><br><b style="font-size: 14px;">Apollo Hospital</b></div>
-                <div><small style="color: #64748b; font-size: 10px; font-weight: 700;">DISTANCE</small><br><b style="font-size: 14px;">2.8 KM</b></div>
-            </div>
-            <button class="btn-action btn-red" onclick="acceptMission()">ACCEPT DISPATCH</button>
+    <div id="screen-hero" class="screen hero-view">
+        <div style="width: 110px; height: 110px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 30px;">
+            <i data-lucide="heart" size="54" fill="white"></i>
         </div>
-    </div>
-
-    <div id="midway-alert">
-        <i data-lucide="check-circle" color="#00C853" size="40" style="margin-bottom: 15px;"></i>
-        <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 10px;">HOSPITAL READY</h2>
-        <p style="font-size: 14px; opacity: 0.9; line-height: 1.5;">Staff ready with stretchers. Doctor available at Gate 2. Proceed with caution.</p>
-        <button class="btn-action btn-red" style="margin-top: 20px; background: white; color: var(--resq-dark);" onclick="dismissMidway()">Acknowledge</button>
-    </div>
-
-    <div id="screen-hero" class="screen hero-screen">
-        <div style="width: 120px; height: 120px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
-            <i data-lucide="heart" size="60" fill="white"></i>
-        </div>
-        <h1 style="font-size: 38px; font-weight: 800; margin-bottom: 10px;">You are a Hero ❤️</h1>
-        <p style="font-size: 18px; font-weight: 600; opacity: 0.9; margin-bottom: 40px;">Another life saved. Great job, Captain.</p>
-        
-        <div style="background: rgba(0,0,0,0.1); width: 100%; padding: 25px; border-radius: 25px; margin-bottom: 40px; text-align: left;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div><p style="font-size: 11px; font-weight: 800; opacity: 0.8;">TIME TAKEN</p><b style="font-size: 20px;">08m 12s</b></div>
-                <div><p style="font-size: 11px; font-weight: 800; opacity: 0.8;">BONUS</p><b style="font-size: 20px;">+ ₹200</b></div>
-            </div>
-        </div>
-        
-        <button class="btn-action" style="background: white; color: var(--resq-green);" onclick="navTo('screen-dash')">Ready for Next Call</button>
+        <h1 style="font-size: 40px; font-weight: 800; margin-bottom: 12px;">You are a Hero ❤️</h1>
+        <p style="font-size: 18px; font-weight: 600; opacity: 0.9; margin-bottom: 40px;">Life saved. Emergency handover completed at Apollo Hospitals.</p>
+        <button class="btn-prime" style="background: white; color: var(--success);" onclick="navTo('screen-dash')">Ready for Next Call</button>
     </div>
 
 </div>
 
 <script>
-    // Initialize Icons
     lucide.createIcons();
-
-    // App State
-    let currentPhase = 'login';
-    let currentTripStep = 0; // 0: To Patient, 1: Patient Onboard, 2: To Hospital
-    let generatedOTP = "";
     
-    // UI Elements
-    const phoneInput = document.getElementById('phone-input');
-    const loginBtn = document.getElementById('btn-login');
-    const otpFields = document.querySelectorAll('.otp-input');
-    const emergencyOverlay = document.getElementById('emergency-alert');
-    const midwayAlert = document.getElementById('midway-alert');
-    const driverUnit = document.getElementById('driver-unit');
+    let tripStep = 0; // 0: To Patient, 1: Patient Onboard, 2: Complete
+    let generatedOTP = "482931";
 
-    // 1. Login Logic
+    // 1. LOGIN LOGIC
+    const phoneInput = document.getElementById('phone-field');
+    const loginBtn = document.getElementById('login-btn');
+
     phoneInput.addEventListener('input', (e) => {
-        const val = e.target.value;
-        if (val.length === 10) {
+        if(e.target.value.length === 10) {
             loginBtn.disabled = false;
-            document.getElementById('phone-error').style.display = 'none';
+            document.getElementById('phone-err').style.display = 'none';
         } else {
             loginBtn.disabled = true;
-            if (val.length > 0 && val.length < 10) {
-                document.getElementById('phone-error').style.display = 'block';
-            }
+            if(e.target.value.length > 0) document.getElementById('phone-err').style.display = 'block';
         }
     });
 
-    function handleLogin() {
+    function requestOTP() {
         generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-        document.getElementById('demo-otp-val').innerText = generatedOTP;
+        document.getElementById('demo-code').innerText = generatedOTP;
         navTo('screen-otp');
     }
 
-    // 2. OTP Focus Logic
-    otpFields.forEach((field, index) => {
-        field.addEventListener('input', (e) => {
-            if (e.target.value.length === 1 && index < otpFields.length - 1) {
-                otpFields[index + 1].focus();
-            }
+    // 2. OTP AUTO-FOCUS
+    const otpBoxes = document.querySelectorAll('.otp-box');
+    otpBoxes.forEach((box, i) => {
+        box.addEventListener('input', (e) => {
+            if(e.target.value && i < otpBoxes.length - 1) otpBoxes[i+1].focus();
         });
     });
 
-    function verifyOTP() {
-        const entered = Array.from(otpFields).map(f => f.value).join('');
-        if (entered === generatedOTP) {
-            localStorage.setItem('resq_auth', 'true');
+    function verifyCode() {
+        const entered = Array.from(otpBoxes).map(b => b.value).join('');
+        if(entered === generatedOTP) {
             navTo('screen-dash');
-            startAutoDispatchSystem();
+            // START AUTO DISPATCH SIMULATION
+            setTimeout(triggerDispatch, 5000);
         } else {
-            document.getElementById('otp-inputs').classList.add('shake');
-            setTimeout(() => document.getElementById('otp-inputs').classList.remove('shake'), 500);
+            alert("Invalid Security Code");
         }
     }
 
-    // 3. Navigation & Support
-    function navTo(screenId) {
+    // 3. NAVIGATION
+    function navTo(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById(screenId).classList.add('active');
+        document.getElementById(id).classList.add('active');
         lucide.createIcons();
     }
 
-    function callSupport() {
-        window.location.href = "tel:8978257449";
-    }
+    function showStats() { navTo('screen-stats'); }
 
-    // 4. Automatic Dispatch System (The "Heart")
-    function startAutoDispatchSystem() {
-        // Automatically trigger a request after 5 seconds of being on dashboard
-        setTimeout(() => {
-            if (document.getElementById('screen-dash').classList.contains('active')) {
-                triggerEmergency();
-            }
-        }, 5000);
-    }
-
-    function triggerEmergency() {
-        emergencyOverlay.style.display = 'flex';
-        // Mock Siren sound
-        const audio = new Audio('https://www.soundjay.com/buttons/beep-01a.mp3');
-        audio.play();
-    }
-
-    function acceptMission() {
-        emergencyOverlay.style.display = 'none';
-        navTo('screen-trip');
-        startMapAnimation();
-    }
-
-    // 5. Map & Trip Flow
-    function startMapAnimation() {
-        driverUnit.style.top = '70%';
-        driverUnit.style.left = '20%';
-        
-        // Simulating Movement
-        setTimeout(() => {
-            driverUnit.style.top = '40%';
-            driverUnit.style.left = '50%';
-        }, 2000);
-    }
-
-    function progressTrip() {
-        currentTripStep++;
-        const label = document.getElementById('swipe-label');
-        const title = document.getElementById('trip-status-title');
-        const navText = document.getElementById('trip-nav-text');
-
-        if (currentTripStep === 1) {
-            title.innerText = "Patient Onboard";
-            label.innerText = "SWIPE TO COMPLETE RIDE";
-            navText.innerText = "Heading to Apollo Hospital";
-            
-            // Trigger Midway Alert after 3 seconds of transport
-            setTimeout(() => {
-                midwayAlert.style.display = 'block';
-                // Alert Sound
-                new Audio('https://www.soundjay.com/buttons/button-3.mp3').play();
-            }, 3000);
-
-            // Move Map
-            driverUnit.style.top = '10%';
-            driverUnit.style.left = '80%';
-        } else {
-            navTo('screen-hero');
-            // Hero Music (Mock)
-            console.log("Superhero Appreciation Music Playing...");
+    // 4. EMERGENCY LOGIC
+    function triggerDispatch() {
+        if(document.getElementById('screen-dash').classList.contains('active')) {
+            navTo('screen-trip');
+            document.getElementById('dispatch-overlay').style.display = 'flex';
+            // Play Siren sound (console mock)
+            console.log("🔊 Playing Siren Sound...");
         }
     }
 
-    function dismissMidway() {
-        midwayAlert.style.display = 'none';
+    function acceptEmergency() {
+        document.getElementById('dispatch-overlay').style.display = 'none';
+        tripStep = 0;
+        updateTripUI();
     }
 
-    // 6. Swipe Button Logic
+    // 5. SWIPE LOGIC
+    const swipeBtn = document.getElementById('swipe-btn');
+    const swipeArea = document.getElementById('swipe-ride');
     let isDragging = false;
     let startX = 0;
-    const knob = document.getElementById('swipe-knob');
-    const track = document.getElementById('swipe-ride-action');
 
-    knob.addEventListener('touchstart', (e) => { isDragging = true; startX = e.touches[0].clientX; });
-    knob.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX; });
+    swipeBtn.addEventListener('mousedown', startSwipe);
+    swipeBtn.addEventListener('touchstart', startSwipe);
 
-    window.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-        let x = e.touches[0].clientX;
-        let walk = x - startX;
-        if (walk < 0) walk = 0;
-        if (walk > track.offsetWidth - 75) walk = track.offsetWidth - 75;
-        knob.style.left = (walk + 6) + 'px';
-        if (walk >= track.offsetWidth - 80) {
-            isDragging = false;
-            knob.style.left = '6px';
-            progressTrip();
-        }
-    });
-
-    window.addEventListener('mouseup', () => { isDragging = false; knob.style.left = '6px'; });
-    window.addEventListener('touchend', () => { isDragging = false; knob.style.left = '6px'; });
-
-    // Check battery & location
-    navigator.getBattery?.().then(b => {
-        document.getElementById('battery-level').innerText = `🔋 ${Math.round(b.level * 100)}%`;
-    });
-
-    function logout() {
-        localStorage.clear();
-        location.reload();
+    function startSwipe(e) {
+        isDragging = true;
+        startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
     }
+
+    window.addEventListener('mousemove', moveSwipe);
+    window.addEventListener('touchmove', moveSwipe);
+
+    function moveSwipe(e) {
+        if(!isDragging) return;
+        let x = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+        let diff = x - startX;
+        let max = swipeArea.offsetWidth - swipeBtn.offsetWidth - 12;
+        
+        if(diff < 0) diff = 0;
+        if(diff > max) diff = max;
+
+        swipeBtn.style.transform = `translateX(${diff}px)`;
+        
+        if(diff >= max) {
+            isDragging = false;
+            swipeBtn.style.transform = `translateX(0px)`;
+            handlePhaseComplete();
+        }
+    }
+
+    window.addEventListener('mouseup', () => { isDragging = false; swipeBtn.style.transform = `translateX(0px)`; });
+    window.addEventListener('touchend', () => { isDragging = false; swipeBtn.style.transform = `translateX(0px)`; });
+
+    function handlePhaseComplete() {
+        tripStep++;
+        if(tripStep === 1) {
+            updateTripUI();
+            // Show Midway Alert after 4 seconds of driving
+            setTimeout(() => {
+                document.getElementById('midway-toast').style.display = 'block';
+                console.log("🔔 Notification: Hospital Ready Alert");
+            }, 4000);
+        } else if(tripStep === 2) {
+            navTo('screen-hero');
+            console.log("🎵 Playing Superhero Appreciation Music...");
+        }
+    }
+
+    function updateTripUI() {
+        const title = document.getElementById('trip-status');
+        const label = document.getElementById('swipe-txt');
+        const nav = document.getElementById('nav-instruction');
+
+        if(tripStep === 0) {
+            title.innerText = "En Route to Patient";
+            label.innerText = "SWIPE TO ARRIVE";
+            nav.innerText = "Heading to Pickup Point";
+        } else {
+            title.innerText = "Patient Onboard";
+            label.innerText = "SWIPE TO COMPLETE RIDE";
+            nav.innerText = "Directing to Apollo ER Bay";
+        }
+    }
+
+    // Battery Mock
+    setInterval(() => {
+        const level = Math.floor(Math.random() * 5) + 90;
+        document.getElementById('battery-stat').innerText = `🔋 ${level}% • RESQ NETWORK`;
+    }, 10000);
+
 </script>
 
 </body>
