@@ -3203,4 +3203,10 @@
     }
   }, 1600);
 </script>
+  <script>
+  // Hard fallback so splash never gets stuck
+  setTimeout(() => {
+    try { setScreen("login"); } catch(e) {}
+  }, 3500);
+</script>
 </html>
