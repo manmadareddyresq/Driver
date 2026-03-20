@@ -3,583 +3,446 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ResQ Driver - Emergency Response</title>
+    <title>ResQ Pro | Driver Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --resq-red: #ff3b30;
-            --resq-dark: #0a0a0c;
-            --glass: rgba(255, 255, 255, 0.08);
-        }
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background: #000; 
-            color: white;
-            overscroll-behavior: none;
-        }
-        .app-container {
-            max-width: 400px;
+        :root { --resq-red: #ff3b30; --resq-emerald: #10b981; }
+        * { -webkit-tap-highlight-color: transparent; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: #000; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: white; }
+        
+        /* Fixed Mobile Container */
+        #app-shell {
+            width: 100%;
+            max-width: 414px;
             height: 100vh;
-            margin: 0 auto;
+            background: #09090b;
             position: relative;
-            background: var(--resq-dark);
             overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
             display: flex;
             flex-direction: column;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
         }
-        .glass { background: var(--glass); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-        .bg-mesh {
-            background: radial-gradient(circle at 0% 0%, #1e1b4b 0%, transparent 50%),
-                        radial-gradient(circle at 100% 100%, #450a0a 0%, transparent 50%);
-        }
+
+        .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+        .emergency-pulse { animation: pulse-bg 1s infinite alternate; }
+        @keyframes pulse-bg { from { background: rgba(255, 59, 48, 0.2); } to { background: rgba(255, 59, 48, 0.5); } }
+        
+        .swipe-track { background: rgba(255,255,255,0.05); height: 72px; border-radius: 36px; position: relative; padding: 6px; }
+        .swipe-thumb { width: 60px; height: 60px; background: white; border-radius: 30px; display: flex; align-items: center; justify-content: center; color: black; cursor: pointer; transition: transform 0.1s; z-index: 10; position: relative; }
+        
+        .step-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: 0.3s; }
+        .step-dot.active { background: var(--resq-red); box-shadow: 0 0 10px var(--resq-red); }
+
         .shimmer {
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
             background-size: 200% 100%;
-            animation: shimmer 2s infinite;
+            animation: shimmer 1.5s infinite;
         }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-        .emergency-blink { animation: redBlink 0.8s infinite alternate; }
-        @keyframes redBlink { from { background: #450a0a; } to { background: #ff3b30; } }
-        .hero-reveal { animation: heroReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes heroReveal { 0% { transform: scale(0.8) translateY(20px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
-        .swipe-track { height: 64px; border-radius: 32px; position: relative; overflow: hidden; background: rgba(255,255,255,0.05); }
-        .swipe-handle { width: 56px; height: 56px; border-radius: 28px; background: white; position: absolute; left: 4px; top: 4px; display: flex; align-items: center; justify-content: center; cursor: grab; z-index: 10; transition: transform 0.1s; color: black; }
-        input:focus + label, input:not(:placeholder-shown) + label { transform: translateY(-24px) scale(0.8); color: #ff3b30; }
-        .tab-active { color: #ff3b30; position: relative; }
-        .tab-active::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: #ff3b30; }
-        ::-webkit-scrollbar { display: none; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen">
+<body>
 
-<div class="app-container border-x border-white/5">
-    
-    <div id="status-bar" class="hidden shrink-0 px-6 pt-4 pb-2 flex justify-between items-center z-50 bg-transparent">
-        <div class="flex items-center gap-2">
+<div id="app-shell">
+    <header class="p-4 pt-6 flex justify-between items-center z-50">
+        <div class="flex items-center gap-3">
             <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span id="top-loc" class="text-[10px] font-bold tracking-tight opacity-70 truncate max-w-[120px]">Detecting...</span>
+            <span id="live-loc" class="text-[11px] font-bold text-white/50 tracking-tight uppercase">Detecting Location...</span>
         </div>
-        <div class="flex items-center gap-3 text-[10px] font-bold">
-            <span id="bat-val">--%</span>
-            <i id="bat-icon" class="fas fa-battery-three-quarters"></i>
+        <div class="flex items-center gap-4 text-[11px] font-black">
+            <span id="bat-pct">--%</span>
+            <i id="bat-ico" class="fas fa-battery-full text-emerald-500"></i>
         </div>
-    </div>
+    </header>
 
-    <main class="flex-1 relative">
+    <div id="screen-container" class="flex-1 relative">
         
-        <section id="screen-login" class="absolute inset-0 z-[100] bg-mesh p-8 flex flex-col justify-center transition-all duration-500">
-            <div class="mb-12">
-                <div class="w-16 h-16 bg-white rounded-2xl mb-6 flex items-center justify-center rotate-3 shadow-xl shadow-red-500/20">
-                    <i class="fas fa-ambulance text-3xl text-red-600"></i>
+        <section id="scr-login" class="absolute inset-0 p-8 flex flex-col justify-center bg-gradient-to-b from-transparent to-red-950/20">
+            <div class="mb-12 text-center">
+                <div class="w-20 h-20 bg-red-600 rounded-[2.5rem] mx-auto mb-6 flex items-center justify-center shadow-2xl shadow-red-600/30">
+                    <i class="fas fa-ambulance text-4xl text-white"></i>
                 </div>
-                <h1 class="text-4xl font-extrabold tracking-tighter">ResQ <span class="text-red-500 underline decoration-4">Driver</span></h1>
-                <p class="text-white/50 mt-2 font-medium">Emergency Response Network</p>
+                <h1 class="text-4xl font-black italic tracking-tighter">ResQ<span class="text-red-600">DRIVE</span></h1>
+                <p class="text-white/40 font-medium mt-2">Certified Responder Terminal</p>
             </div>
 
-            <div class="space-y-6">
-                <div class="relative group">
-                    <input type="tel" id="login-phone" placeholder=" " class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 outline-none focus:border-red-500 transition-all text-lg font-bold">
-                    <label class="absolute left-5 top-4 text-white/40 pointer-events-none transition-all">Phone Number</label>
+            <div class="space-y-4">
+                <div class="glass-card rounded-2xl p-4 focus-within:border-red-600/50 transition-all">
+                    <label class="block text-[10px] font-black text-red-600 uppercase mb-1">Mobile Access Number</label>
+                    <input type="tel" id="phone-input" placeholder="+91 00000 00000" class="bg-transparent border-none outline-none w-full text-lg font-bold">
                 </div>
                 
-                <div id="otp-box" class="hidden space-y-4">
-                    <div class="flex justify-between gap-2">
-                        <input type="text" maxlength="1" class="otp-in w-full h-14 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-bold outline-none focus:border-red-500">
-                        <input type="text" maxlength="1" class="otp-in w-full h-14 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-bold outline-none focus:border-red-500">
-                        <input type="text" maxlength="1" class="otp-in w-full h-14 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-bold outline-none focus:border-red-500">
-                        <input type="text" maxlength="1" class="otp-in w-full h-14 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-bold outline-none focus:border-red-500">
+                <div id="otp-wrapper" class="hidden fade-in">
+                    <div class="glass-card rounded-2xl p-4 border-emerald-500/30">
+                        <label class="block text-[10px] font-black text-emerald-500 uppercase mb-1">Secure OTP</label>
+                        <input type="text" id="otp-input" maxlength="4" placeholder="••••" class="bg-transparent border-none outline-none w-full text-2xl font-black tracking-[1.5rem] text-center">
                     </div>
-                    <p id="demo-otp-txt" class="text-center text-xs font-bold text-red-500 uppercase tracking-widest animate-pulse"></p>
+                    <p id="demo-otp" class="text-center text-xs mt-3 font-bold text-emerald-400 animate-pulse"></p>
                 </div>
 
-                <button id="btn-login-main" onclick="handleLoginStep()" class="w-full bg-red-600 hover:bg-red-500 py-5 rounded-2xl font-bold text-lg shadow-xl shadow-red-900/20 transition-all active:scale-95">
-                    Send OTP
+                <button id="auth-btn" onclick="handleAuth()" class="w-full bg-red-600 py-5 rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-transform">
+                    GET STARTED
                 </button>
             </div>
         </section>
 
-        <section id="screen-dash" class="hidden absolute inset-0 overflow-y-auto px-6 pt-2 pb-24 transition-all duration-300">
-            <div class="flex justify-between items-start mt-4 mb-8">
+        <section id="scr-dash" class="hidden absolute inset-0 overflow-y-auto px-6 pb-24">
+            <div class="flex justify-between items-center my-6">
                 <div>
-                    <h2 class="text-2xl font-extrabold tracking-tight">Officer Rahul</h2>
-                    <p class="text-white/40 text-xs font-semibold uppercase tracking-widest">Omni Hospital Kukatpally</p>
+                    <h2 class="text-2xl font-black">Officer Rahul</h2>
+                    <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest">Omni Hospital Kukatpally</p>
                 </div>
-                <div class="flex flex-col items-end gap-2">
-                    <button id="duty-toggle" onclick="toggleDuty()" class="w-12 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 relative transition-all">
-                        <div class="absolute right-1 top-1 w-4 h-4 rounded-full bg-emerald-500 shadow-lg"></div>
-                    </button>
-                    <span id="duty-label" class="text-[9px] font-bold text-emerald-500 uppercase">Online</span>
-                </div>
+                <button onclick="toggleDuty()" id="duty-btn" class="px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase">
+                    Online
+                </button>
             </div>
 
-            <div class="grid grid-cols-2 gap-3 mb-8">
-                <div class="glass p-4 rounded-3xl">
-                    <p class="text-[10px] text-white/40 font-bold uppercase mb-1">Trips Today</p>
-                    <p class="text-2xl font-extrabold">12</p>
-                </div>
-                <div class="glass p-4 rounded-3xl">
-                    <p class="text-[10px] text-white/40 font-bold uppercase mb-1">Score</p>
-                    <div class="flex items-center gap-1">
-                        <span class="text-2xl font-extrabold text-yellow-500">98</span>
-                        <i class="fas fa-bolt text-yellow-500 text-xs"></i>
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div class="glass-card p-5 rounded-[2rem]">
+                    <p class="text-[10px] font-black text-white/30 uppercase mb-2">Shift Goals</p>
+                    <p class="text-2xl font-black">08<span class="text-sm text-white/20">/12</span></p>
+                    <div class="w-full h-1 bg-white/5 mt-3 rounded-full overflow-hidden">
+                        <div class="h-full bg-red-600 w-2/3"></div>
                     </div>
                 </div>
-            </div>
-
-            <div class="mb-8">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-sm">Performance</h3>
-                    <span class="text-[10px] font-bold text-red-500">Top 5% in Region</span>
-                </div>
-                <div class="h-32 glass rounded-3xl p-4 flex items-end gap-2 justify-between">
-                    <div class="w-full bg-white/10 rounded-t-lg h-[40%]"></div>
-                    <div class="w-full bg-white/10 rounded-t-lg h-[70%]"></div>
-                    <div class="w-full bg-red-500/50 rounded-t-lg h-[50%]"></div>
-                    <div class="w-full bg-white/10 rounded-t-lg h-[90%]"></div>
-                    <div class="w-full bg-white/10 rounded-t-lg h-[30%]"></div>
-                    <div class="w-full bg-red-500 rounded-t-lg h-[100%] shimmer"></div>
+                <div class="glass-card p-5 rounded-[2rem]">
+                    <p class="text-[10px] font-black text-white/30 uppercase mb-2">Earnings</p>
+                    <p class="text-2xl font-black text-emerald-500">₹4.2k</p>
+                    <p class="text-[9px] font-bold text-white/20 mt-3 italic">+12% from yesterday</p>
                 </div>
             </div>
 
-            <div class="mb-4">
-                <h3 class="font-bold text-sm mb-4">Leaderboard</h3>
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xs font-bold text-white/30 italic">01</span>
-                            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-500 to-amber-200"></div>
-                            <span class="text-xs font-bold">K. Vikram</span>
+            <h3 class="text-xs font-black uppercase text-white/30 mb-4 px-2">Recent Protocols</h3>
+            <div class="space-y-3 mb-8">
+                <div class="glass-card p-4 rounded-2xl flex justify-between items-center shimmer">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-red-500">
+                            <i class="fas fa-heartbeat"></i>
                         </div>
-                        <span class="text-xs font-bold">2,450 pts</span>
-                    </div>
-                    <div class="flex items-center justify-between p-3 rounded-2xl bg-red-600/10 border border-red-500/20">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xs font-bold text-red-500 italic">04</span>
-                            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold">ME</div>
-                            <span class="text-xs font-bold">Rahul (You)</span>
+                        <div>
+                            <p class="text-sm font-bold">Cardiac Case #902</p>
+                            <p class="text-[10px] text-white/40">Miyapur • Completed</p>
                         </div>
-                        <span class="text-xs font-bold">1,890 pts</span>
                     </div>
+                    <i class="fas fa-chevron-right text-white/10"></i>
+                </div>
+                <div class="glass-card p-4 rounded-2xl flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-blue-500">
+                            <i class="fas fa-car-crash"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold">Trauma Case #899</p>
+                            <p class="text-[10px] text-white/40">JNTU • Completed</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-white/10"></i>
+                </div>
+            </div>
+
+            <div class="glass-card p-6 rounded-[2.5rem]">
+                <h4 class="text-xs font-black uppercase mb-4">Top Responders</h4>
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-black font-black text-[10px]">1</div>
+                    <span class="text-sm font-bold">K. Vikram</span>
+                    <span class="ml-auto text-xs font-black text-white/40">1,240 pts</span>
+                </div>
+                <div class="flex items-center gap-4 border-t border-white/5 pt-4">
+                    <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/40 font-black text-[10px]">4</div>
+                    <span class="text-sm font-bold">Rahul (You)</span>
+                    <span class="ml-auto text-xs font-black text-white/40">980 pts</span>
                 </div>
             </div>
         </section>
 
-        <div id="modal-request" class="hidden absolute inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-6">
-            <div id="emergency-bg" class="absolute inset-0 opacity-20"></div>
-            
-            <div class="w-full glass rounded-[40px] p-8 text-center relative overflow-hidden">
-                <div id="req-type-tag" class="inline-block px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter mb-4"></div>
-                
-                <h2 id="req-condition" class="text-3xl font-black mb-1">CARDIAC ARREST</h2>
-                <p id="req-patient" class="text-white/50 text-sm mb-8 italic">Patient: Mr. Suresh (Age: 54)</p>
-                
-                <div class="space-y-4 mb-10">
-                    <div class="flex items-center justify-between text-left glass p-4 rounded-2xl">
-                        <div>
-                            <p class="text-[10px] text-white/40 font-bold uppercase">Pickup Location</p>
-                            <p id="req-loc-name" class="font-bold text-red-500">Miyapur Metro</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-[10px] text-white/40 font-bold uppercase">Distance</p>
-                            <p class="font-bold">1.2 KM</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="relative w-24 h-24 mx-auto mb-10">
-                    <svg class="w-full h-full -rotate-90">
-                        <circle cx="48" cy="48" r="44" stroke="currentColor" stroke-width="4" fill="transparent" class="text-white/10"/>
-                        <circle id="timer-circle" cx="48" cy="48" r="44" stroke="currentColor" stroke-width="4" fill="transparent" class="text-red-500" stroke-dasharray="276" stroke-dashoffset="0"/>
-                    </svg>
-                    <div id="timer-val" class="absolute inset-0 flex items-center justify-center text-3xl font-black italic">15</div>
-                </div>
-
-                <button onclick="acceptRequest()" class="w-full bg-white text-black py-5 rounded-3xl font-black text-xl hover:scale-105 transition-transform active:scale-95">
-                    ACCEPT MISSION
-                </button>
-            </div>
-        </div>
-
-        <section id="screen-ride" class="hidden absolute inset-0 flex flex-col bg-[#111]">
-            <div class="relative flex-1 bg-[#1a1a1a] overflow-hidden">
-                <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 30px 30px;"></div>
-                
+        <section id="scr-ride" class="hidden absolute inset-0 flex flex-col bg-[#050505]">
+            <div class="flex-1 relative overflow-hidden bg-[#0a0a0a]">
+                <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 32px 32px;"></div>
                 <svg class="absolute inset-0 w-full h-full">
-                    <path id="route-path" d="M 200 600 L 200 400 L 50 400 L 50 100" fill="none" stroke="#ff3b30" stroke-width="4" stroke-dasharray="10 10" class="opacity-40" />
+                    <path id="route-line" d="M 50 600 Q 200 400 350 100" fill="none" stroke="red" stroke-width="3" stroke-dasharray="10,10" class="opacity-30" />
                 </svg>
-
-                <div id="ambulance-marker" class="absolute bottom-[10%] left-[45%] transition-all duration-1000">
+                
+                <div id="amb-unit" class="absolute bottom-[20%] left-[45%] transition-all duration-1000">
                     <div class="relative">
-                        <div class="absolute -top-10 -left-4 bg-red-600 text-[8px] font-bold px-2 py-1 rounded-md animate-bounce">EN-ROUTE</div>
-                        <i class="fas fa-ambulance text-3xl text-white drop-shadow-[0_0_15px_rgba(255,59,48,1)]"></i>
+                        <div class="absolute -top-12 -left-8 bg-white text-black px-3 py-1 rounded-lg text-[9px] font-black uppercase shadow-2xl">En-Route</div>
+                        <i class="fas fa-ambulance text-3xl text-white drop-shadow-[0_0_20px_rgba(255,59,48,1)]"></i>
                     </div>
                 </div>
 
-                <div id="hosp-near-alert" class="hidden absolute top-20 left-6 right-6 glass p-5 rounded-[2rem] border-blue-500/30 animate-pulse">
-                    <p class="text-[10px] font-black text-blue-500 uppercase mb-2">Hospital Sync: Active</p>
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <p class="text-xs font-bold text-white/50">ER GATE</p>
-                            <p class="text-lg font-black">Gate 04</p>
+                <div id="hospital-alert" class="hidden absolute top-10 left-6 right-6 fade-in">
+                    <div class="glass-card p-5 rounded-[2rem] border-blue-500/40 bg-blue-900/10">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-[9px] font-black text-blue-500 uppercase">Hospital Ready</p>
+                            <i class="fas fa-hospital-symbol text-blue-500"></i>
                         </div>
-                        <div>
-                            <p class="text-xs font-bold text-white/50">STRETCHER</p>
-                            <p class="text-lg font-black text-blue-400">#RESQ-09</p>
+                        <div class="flex justify-between">
+                            <div><p class="text-[10px] text-white/40">ER BAY</p><p class="text-xl font-black">04-A</p></div>
+                            <div class="text-right"><p class="text-[10px] text-white/40">DOCTOR</p><p class="text-xl font-black text-blue-400">Dr. Mehta</p></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="shrink-0 bg-black p-8 rounded-t-[3rem] border-t border-white/5">
-                <div class="flex justify-between items-center mb-6">
+            <div class="shrink-0 glass-card rounded-t-[3rem] p-8 pb-10 border-t border-white/10">
+                <div class="flex justify-between items-center mb-8">
                     <div>
-                        <p id="step-label" class="text-red-500 text-[10px] font-black uppercase tracking-widest">Step 1 of 6</p>
-                        <h4 id="status-title" class="text-xl font-black">Moving to Patient</h4>
+                        <p id="ride-status-txt" class="text-[10px] font-black text-red-600 uppercase mb-1">Mission Active</p>
+                        <h4 id="ride-heading" class="text-2xl font-black">Head to Miyapur</h4>
                     </div>
-                    <div class="w-12 h-12 rounded-2xl glass flex items-center justify-center">
-                        <i class="fas fa-location-arrow text-white/40"></i>
+                    <div class="flex gap-1">
+                        <div class="step-dot active" id="dot-1"></div>
+                        <div class="step-dot" id="dot-2"></div>
+                        <div class="step-dot" id="dot-3"></div>
                     </div>
                 </div>
 
-                <div class="swipe-track mb-4">
-                    <div id="swipe-text" class="absolute inset-0 flex items-center justify-center text-xs font-bold text-white/20 uppercase tracking-[0.2em]">Swipe to Arrive</div>
-                    <div id="swipe-handle" class="swipe-handle">
+                <div class="swipe-track">
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <p id="swipe-label" class="text-xs font-black text-white/20 uppercase tracking-[0.2em]">Swipe to Arrive</p>
+                    </div>
+                    <div id="main-swipe" class="swipe-thumb shadow-2xl">
                         <i class="fas fa-chevron-right"></i>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section id="screen-hero" class="hidden absolute inset-0 z-[200] bg-black flex flex-col items-center justify-center p-8 text-center">
-            <div class="hero-reveal">
-                <div class="w-32 h-32 bg-emerald-500 rounded-full mx-auto mb-8 flex items-center justify-center shadow-[0_0_80px_rgba(16,185,129,0.4)]">
-                    <i class="fas fa-heart text-5xl text-white"></i>
+        <section id="scr-success" class="hidden absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center p-8 text-center">
+            <div class="fade-in">
+                <div class="w-32 h-32 bg-emerald-500 rounded-full mx-auto mb-10 flex items-center justify-center shadow-[0_0_80px_rgba(16,185,129,0.5)]">
+                    <i class="fas fa-check text-5xl text-white"></i>
                 </div>
-                <h1 class="text-4xl font-black text-white mb-4">You are a Hero ❤️</h1>
-                <p class="text-white/60 text-lg mb-12">Hospital handover successful.<br><span class="text-emerald-400">Another life saved today.</span></p>
+                <h2 class="text-4xl font-black mb-4">HERO STATUS ❤️</h2>
+                <p class="text-white/40 text-lg mb-12">Patient delivered safely.<br>Excellent response time.</p>
                 
-                <div class="glass w-full p-6 rounded-[2.5rem] mb-12 flex justify-around">
-                    <div>
-                        <p class="text-[10px] text-white/40 font-bold uppercase">Distance</p>
-                        <p class="text-lg font-bold">4.8 KM</p>
+                <div class="grid grid-cols-2 gap-4 mb-12">
+                    <div class="glass-card p-6 rounded-3xl">
+                        <p class="text-[10px] font-black text-white/30 uppercase mb-2">Distance</p>
+                        <p class="text-xl font-black">4.2 km</p>
                     </div>
-                    <div class="w-px h-8 bg-white/10 mt-2"></div>
-                    <div>
-                        <p class="text-[10px] text-white/40 font-bold uppercase">Time</p>
-                        <p class="text-lg font-bold">14 Mins</p>
+                    <div class="glass-card p-6 rounded-3xl">
+                        <p class="text-[10px] font-black text-white/30 uppercase mb-2">Efficiency</p>
+                        <p class="text-xl font-black text-emerald-500">98%</p>
                     </div>
                 </div>
 
-                <button onclick="returnToBase()" class="w-full bg-white text-black py-5 rounded-3xl font-black">RETURN TO BASE</button>
+                <button onclick="goHome()" class="w-full py-5 bg-white text-black font-black rounded-2xl">READY FOR NEXT MISSION</button>
             </div>
         </section>
 
-    </main>
+        <div id="modal-emergency" class="hidden fixed inset-0 z-[200] bg-black/95 p-6 flex items-center justify-center">
+            <div class="w-full glass-card rounded-[3rem] p-8 border-red-600/50 relative overflow-hidden">
+                <div class="absolute inset-0 emergency-pulse opacity-20"></div>
+                
+                <div class="relative z-10 text-center">
+                    <div class="inline-block px-4 py-1 bg-red-600 rounded-full text-[10px] font-black uppercase mb-6">Critical Alert</div>
+                    <h3 id="em-condition" class="text-3xl font-black mb-2 italic">CARDIAC ARREST</h3>
+                    <p class="text-white/40 text-sm mb-10">Miyapur Cross Roads • 1.4km away</p>
+                    
+                    <div class="relative w-24 h-24 mx-auto mb-10">
+                        <svg class="w-full h-full -rotate-90">
+                            <circle cx="48" cy="48" r="44" stroke="rgba(255,255,255,0.1)" stroke-width="4" fill="transparent"/>
+                            <circle id="timer-ring" cx="48" cy="48" r="44" stroke="#ff3b30" stroke-width="4" fill="transparent" stroke-dasharray="276" stroke-dashoffset="0" class="transition-all duration-1000"/>
+                        </svg>
+                        <div id="timer-txt" class="absolute inset-0 flex items-center justify-center text-3xl font-black">15</div>
+                    </div>
 
-    <nav id="bottom-nav" class="hidden shrink-0 h-20 glass border-t border-white/5 flex justify-around items-center px-4 z-40">
-        <button onclick="showScreen('screen-dash')" class="p-3 tab-active"><i class="fas fa-home-alt text-lg"></i></button>
-        <button class="p-3 text-white/20"><i class="fas fa-history text-lg"></i></button>
-        <div class="w-14 h-14 bg-red-600 rounded-2xl flex items-center justify-center -mt-10 shadow-xl shadow-red-900/40 border-4 border-[#0a0a0c]">
+                    <button onclick="acceptMission()" class="w-full bg-white text-black py-5 rounded-3xl font-black text-xl active:scale-95 transition-transform">
+                        ACCEPT MISSION
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav id="bottom-nav" class="hidden h-20 glass-card border-t border-white/5 flex justify-around items-center px-6">
+        <button onclick="goHome()" class="p-3 text-red-600"><i class="fas fa-home-lg-alt text-xl"></i></button>
+        <button class="p-3 text-white/20"><i class="fas fa-history text-xl"></i></button>
+        <div class="w-14 h-14 bg-red-600 rounded-2xl flex items-center justify-center -mt-10 shadow-2xl border-4 border-[#09090b]">
             <a href="tel:8978257449"><i class="fas fa-phone-alt text-white"></i></a>
         </div>
-        <button class="p-3 text-white/20"><i class="fas fa-chart-pie text-lg"></i></button>
-        <button onclick="logout()" class="p-3 text-white/20"><i class="fas fa-cog text-lg"></i></button>
+        <button class="p-3 text-white/20"><i class="fas fa-medal text-xl"></i></button>
+        <button onclick="logout()" class="p-3 text-white/20"><i class="fas fa-sign-out-alt text-xl"></i></button>
     </nav>
-
-    <div id="toast" class="fixed top-8 left-1/2 -translate-x-1/2 z-[300] bg-white text-black px-6 py-3 rounded-full font-bold text-xs shadow-2xl opacity-0 translate-y-[-20px] transition-all"></div>
 </div>
 
-<audio id="siren" loop src="https://actions.google.com/sounds/v1/emergency/ambulance_siren_short.ogg"></audio>
-<audio id="success-sound" src="https://actions.google.com/sounds/v1/impacts/crash_metal.ogg"></audio>
+<audio id="siren-loop" loop src="https://actions.google.com/sounds/v1/emergency/ambulance_siren_short.ogg"></audio>
+<audio id="complete-chime" src="https://actions.google.com/sounds/v1/impacts/crash_metal.ogg"></audio>
 
 <script>
-    // State Management
-    let state = {
-        isLoggedIn: localStorage.getItem('resq_logged') === 'true',
+    const state = {
+        isLoggedIn: localStorage.getItem('resq_v2_auth') === 'true',
         isOnline: true,
         currentOTP: '',
-        activeRide: null,
-        ridePhase: 0,
-        timer: 15,
-        timerInt: null
+        ridePhase: 0, // 0: To Patient, 1: Picked Up, 2: At Hospital
+        timer: 15
     };
 
-    const LOCATIONS = ["JNTU", "KPHB", "Kukatpally", "Miyapur", "Pragathi Nagar"];
     const PHASES = [
-        { title: "Moving to Patient", label: "Swipe to Arrive", step: "Step 1 of 6" },
-        { title: "Near Patient", label: "Swipe to Pickup", step: "Step 2 of 6" },
-        { title: "Patient Picked Up", label: "Swipe to Start Hospital Trip", step: "Step 3 of 6" },
-        { title: "Moving to Hospital", label: "Swipe to Reach Hospital", step: "Step 4 of 6" },
-        { title: "At Hospital Gate", label: "Swipe to Handover", step: "Step 5 of 6" },
-        { title: "Handover Complete", label: "Swipe to Finish Mission", step: "Step 6 of 6" }
+        { title: "Head to Miyapur", label: "Swipe to Arrive", status: "Mission Active" },
+        { title: "Rescue Patient", label: "Swipe to Pickup", status: "At Location" },
+        { title: "Move to Hospital", label: "Swipe to Complete", status: "Patient Onboard" }
     ];
 
-    // Initialization
     window.onload = () => {
-        if (state.isLoggedIn) {
-            setupApp();
-        }
-        initGeo();
         initBattery();
-        initOTPInputs();
+        initGeo();
+        if(state.isLoggedIn) mountApp();
     };
 
-    function setupApp() {
-        showScreen('screen-dash');
-        document.getElementById('screen-login').classList.add('translate-y-full', 'opacity-0');
-        document.getElementById('bottom-nav').classList.remove('hidden');
-        document.getElementById('status-bar').classList.remove('hidden');
-        
-        // Random Emergency Logic
-        setInterval(() => {
-            if (state.isOnline && !state.activeRide && Math.random() > 0.7) {
-                triggerEmergency();
-            }
-        }, 15000);
-    }
+    function handleAuth() {
+        const phone = document.getElementById('phone-input').value;
+        const otpBox = document.getElementById('otp-wrapper');
+        const authBtn = document.getElementById('auth-btn');
 
-    // Auth System
-    function initOTPInputs() {
-        const inputs = document.querySelectorAll('.otp-in');
-        inputs.forEach((input, index) => {
-            input.onkeyup = (e) => {
-                if (e.target.value.length === 1 && index < 3) inputs[index + 1].focus();
-                if (e.key === 'Backspace' && index > 0) inputs[index - 1].focus();
-            };
-        });
-    }
-
-    function handleLoginStep() {
-        const phone = document.getElementById('login-phone').value;
-        const btn = document.getElementById('btn-login-main');
-        
-        if (!state.currentOTP) {
-            if (phone.length < 10) return showToast("Enter valid phone number");
+        if(!state.currentOTP) {
+            if(phone.length < 10) return alert("Enter valid phone");
             state.currentOTP = Math.floor(1000 + Math.random() * 9000).toString();
-            document.getElementById('otp-box').classList.remove('hidden');
-            document.getElementById('demo-otp-txt').innerText = "Demo OTP: " + state.currentOTP;
-            btn.innerText = "Verify & Login";
+            otpBox.classList.remove('hidden');
+            document.getElementById('demo-otp').innerText = "DEMO OTP: " + state.currentOTP;
+            authBtn.innerText = "VERIFY LOGIN";
         } else {
-            const entered = Array.from(document.querySelectorAll('.otp-in')).map(i => i.value).join('');
-            if (entered === state.currentOTP) {
-                localStorage.setItem('resq_logged', 'true');
-                setupApp();
+            if(document.getElementById('otp-input').value === state.currentOTP) {
+                localStorage.setItem('resq_v2_auth', 'true');
+                mountApp();
             } else {
-                showToast("Invalid OTP. Try again.");
+                alert("Wrong OTP");
             }
         }
     }
 
-    // Emergency Core
-    function triggerEmergency() {
-        const isCritical = Math.random() > 0.5;
-        const condition = isCritical ? "CARDIAC ARREST" : "ROAD ACCIDENT";
-        const patient = isCritical ? "Mr. Suresh (Age: 54)" : "Unknown Male (Age: 25)";
-        const loc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
+    function mountApp() {
+        document.getElementById('scr-login').classList.add('hidden');
+        document.getElementById('scr-dash').classList.remove('hidden');
+        document.getElementById('bottom-nav').classList.remove('hidden');
         
-        document.getElementById('req-condition').innerText = condition;
-        document.getElementById('req-patient').innerText = "Patient: " + patient;
-        document.getElementById('req-loc-name').innerText = loc;
-        
-        const tag = document.getElementById('req-type-tag');
-        if(isCritical) {
-            tag.innerText = "Critical Auto-Assign";
-            tag.className = "emergency-blink inline-block px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter mb-4 text-white";
-        } else {
-            tag.innerText = "Hospital Booking";
-            tag.className = "bg-emerald-500 inline-block px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter mb-4 text-black";
-        }
+        // Start random dispatch simulation
+        setInterval(() => {
+            if(state.isOnline && !document.getElementById('scr-ride').offsetParent) {
+                if(Math.random() > 0.7) triggerEmergency();
+            }
+        }, 12000);
+    }
 
-        document.getElementById('modal-request').classList.remove('hidden');
-        document.getElementById('siren').play();
-        
+    function triggerEmergency() {
+        document.getElementById('modal-emergency').classList.remove('hidden');
+        document.getElementById('siren-loop').play();
         state.timer = 15;
-        const timerCircle = document.getElementById('timer-circle');
-        state.timerInt = setInterval(() => {
+        const ring = document.getElementById('timer-ring');
+        const interval = setInterval(() => {
             state.timer--;
-            document.getElementById('timer-val').innerText = state.timer;
-            const offset = 276 - (state.timer / 15) * 276;
-            timerCircle.style.strokeDashoffset = offset;
-            
-            if (state.timer <= 0) {
-                closeEmergency();
-                showToast("Request Missed - Moving to next driver");
+            document.getElementById('timer-txt').innerText = state.timer;
+            ring.style.strokeDashoffset = 276 - (state.timer/15 * 276);
+            if(state.timer <= 0 || document.getElementById('modal-emergency').classList.contains('hidden')) {
+                clearInterval(interval);
+                document.getElementById('modal-emergency').classList.add('hidden');
+                document.getElementById('siren-loop').pause();
             }
         }, 1000);
     }
 
-    function acceptRequest() {
-        clearInterval(state.timerInt);
-        document.getElementById('siren').pause();
-        document.getElementById('siren').currentTime = 0;
-        document.getElementById('modal-request').classList.add('hidden');
-        state.activeRide = true;
+    function acceptMission() {
+        document.getElementById('modal-emergency').classList.add('hidden');
+        document.getElementById('siren-loop').pause();
         state.ridePhase = 0;
         updateRideUI();
-        showScreen('screen-ride');
+        showScreen('scr-ride');
     }
 
-    function closeEmergency() {
-        clearInterval(state.timerInt);
-        document.getElementById('siren').pause();
-        document.getElementById('modal-request').classList.add('hidden');
-    }
-
-    // Swipe Logic
-    const handle = document.getElementById('swipe-handle');
-    let isSwiping = false;
+    // Modern Swipe Interaction
+    const thumb = document.getElementById('main-swipe');
     let startX = 0;
+    let isDragging = false;
 
-    handle.onmousedown = handle.ontouchstart = (e) => {
-        isSwiping = true;
-        startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-    };
-
-    window.onmousemove = window.ontouchmove = (e) => {
-        if (!isSwiping) return;
-        const currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-        let delta = currentX - startX;
-        if (delta < 0) delta = 0;
-        if (delta > 270) delta = 270;
-        handle.style.transform = `translateX(${delta}px)`;
-        
-        if (delta >= 270) {
-            isSwiping = false;
-            handle.style.transform = `translateX(0px)`;
-            nextPhase();
+    thumb.ontouchstart = (e) => { startX = e.touches[0].clientX; isDragging = true; };
+    window.ontouchmove = (e) => {
+        if(!isDragging) return;
+        let delta = e.touches[0].clientX - startX;
+        if(delta < 0) delta = 0;
+        if(delta > 270) delta = 270;
+        thumb.style.transform = `translateX(${delta}px)`;
+        if(delta >= 270) {
+            isDragging = false;
+            thumb.style.transform = `translateX(0px)`;
+            handlePhaseComplete();
         }
     };
+    window.ontouchend = () => { thumb.style.transform = `translateX(0px)`; isDragging = false; };
 
-    window.onmouseup = window.ontouchend = () => {
-        if (!isSwiping) return;
-        isSwiping = false;
-        handle.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
-        handle.style.transform = `translateX(0px)`;
-        setTimeout(() => handle.style.transition = 'none', 400);
-    };
-
-    function nextPhase() {
+    function handlePhaseComplete() {
         state.ridePhase++;
-        if (state.ridePhase >= PHASES.length) {
-            finishTrip();
-        } else {
+        if(state.ridePhase < 3) {
             updateRideUI();
-            moveAmbulance();
+            if(state.ridePhase === 2) {
+                document.getElementById('hospital-alert').classList.remove('hidden');
+            }
+        } else {
+            showScreen('scr-success');
+            document.getElementById('complete-chime').play();
         }
     }
 
     function updateRideUI() {
         const p = PHASES[state.ridePhase];
-        document.getElementById('status-title').innerText = p.title;
-        document.getElementById('swipe-text').innerText = p.label;
-        document.getElementById('step-label').innerText = p.step;
+        document.getElementById('ride-heading').innerText = p.title;
+        document.getElementById('swipe-label').innerText = p.label;
+        document.getElementById('ride-status-txt').innerText = p.status;
         
-        if (state.ridePhase >= 3) {
-            document.getElementById('hosp-near-alert').classList.remove('hidden');
-        }
-    }
-
-    function moveAmbulance() {
-        const amb = document.getElementById('ambulance-marker');
-        const pos = [
-            { b: '10%', l: '45%' },
-            { b: '40%', l: '45%' },
-            { b: '40%', l: '10%' },
-            { b: '60%', l: '10%' },
-            { b: '85%', l: '10%' },
-            { b: '85%', l: '50%' }
-        ];
-        const p = pos[state.ridePhase];
-        amb.style.bottom = p.b;
-        amb.style.left = p.l;
-    }
-
-    function finishTrip() {
-        showScreen('screen-hero');
-        document.getElementById('success-sound').play();
-    }
-
-    function returnToBase() {
-        state.activeRide = null;
-        state.ridePhase = 0;
-        document.getElementById('hosp-near-alert').classList.add('hidden');
-        showScreen('screen-dash');
-    }
-
-    // UI Helpers
-    function showScreen(id) {
-        ['screen-dash', 'screen-ride', 'screen-hero'].forEach(s => {
-            document.getElementById(s).classList.add('hidden');
+        // Update Dots
+        document.querySelectorAll('.step-dot').forEach((d, i) => {
+            d.className = i <= state.ridePhase ? 'step-dot active' : 'step-dot';
         });
+
+        // Sim movement
+        const amb = document.getElementById('amb-unit');
+        amb.style.bottom = (20 + (state.ridePhase * 30)) + "%";
+        amb.style.left = (45 - (state.ridePhase * 10)) + "%";
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
     }
 
-    function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.style.opacity = '1';
-        t.style.transform = 'translate(-50%, 20px)';
-        setTimeout(() => {
-            t.style.opacity = '0';
-            t.style.transform = 'translate(-50%, -20px)';
-        }, 3000);
+    function goHome() {
+        document.getElementById('hospital-alert').classList.add('hidden');
+        showScreen('scr-dash');
     }
 
     function toggleDuty() {
         state.isOnline = !state.isOnline;
-        const btn = document.getElementById('duty-toggle');
-        const dot = btn.querySelector('div');
-        const label = document.getElementById('duty-label');
-        
-        if (state.isOnline) {
-            btn.className = "w-12 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 relative transition-all";
-            dot.className = "absolute right-1 top-1 w-4 h-4 rounded-full bg-emerald-500 shadow-lg";
-            label.innerText = "Online";
-            label.className = "text-[9px] font-bold text-emerald-500 uppercase";
-            showToast("You are now ONLINE");
-        } else {
-            btn.className = "w-12 h-6 rounded-full bg-white/5 border border-white/10 relative transition-all";
-            dot.className = "absolute left-1 top-1 w-4 h-4 rounded-full bg-white/20";
-            label.innerText = "Offline";
-            label.className = "text-[9px] font-bold text-white/30 uppercase";
-            showToast("You are now OFFLINE");
+        const btn = document.getElementById('duty-btn');
+        btn.innerText = state.isOnline ? "Online" : "Offline";
+        btn.className = state.isOnline ? "px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase" 
+                                      : "px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white/30 text-[10px] font-black uppercase";
+    }
+
+    function initBattery() {
+        if(navigator.getBattery) {
+            navigator.getBattery().then(b => {
+                const up = () => {
+                    document.getElementById('bat-pct').innerText = Math.round(b.level * 100) + "%";
+                };
+                up();
+                b.onlevelchange = up;
+            });
         }
     }
 
     function initGeo() {
-        if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(pos => {
-                const area = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
-                document.getElementById('top-loc').innerText = `📍 ${area} (${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)})`;
+        if(navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(p => {
+                document.getElementById('live-loc').innerText = "📍 Miyapur, Hyderabad (" + p.coords.latitude.toFixed(2) + ")";
             });
         }
     }
 
-    function initBattery() {
-        if (navigator.getBattery) {
-            navigator.getBattery().then(bat => {
-                const update = () => {
-                    const level = Math.floor(bat.level * 100);
-                    document.getElementById('bat-val').innerText = level + "%";
-                    const icon = document.getElementById('bat-icon');
-                    if (level < 20) icon.className = "fas fa-battery-quarter text-red-500";
-                    else if (level < 50) icon.className = "fas fa-battery-half text-yellow-500";
-                    else icon.className = "fas fa-battery-full text-emerald-500";
-                };
-                update();
-                bat.onlevelchange = update;
-                bat.onchargingchange = update;
-            });
-        }
-    }
-
-    function logout() {
-        localStorage.clear();
-        location.reload();
-    }
+    function logout() { localStorage.clear(); location.reload(); }
 </script>
 
 </body>
