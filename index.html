@@ -2,280 +2,577 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ResQ Driver - Emergency Response</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #0f172a; overflow-x: hidden; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .phone-container { max-width: 400px; height: 850px; margin: 20px auto; border: 12px solid #1e293b; border-radius: 45px; position: relative; overflow: hidden; background: #020617; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-        @media (max-width: 450px) { .phone-container { max-width: 100%; height: 100vh; margin: 0; border: none; border-radius: 0; } }
-        .swipe-slider { position: relative; height: 60px; background: rgba(255,255,255,0.1); border-radius: 30px; overflow: hidden; }
-        .swipe-handle { position: absolute; left: 5px; top: 5px; width: 50px; height: 50px; background: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; z-index: 10; }
-        .status-pulse { position: absolute; top: 10px; right: 10px; width: 12px; height: 12px; border-radius: 50%; }
-        .pulse-red { background: #ef4444; box-shadow: 0 0 0 rgba(239, 68, 68, 0.4); animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0px rgba(239, 68, 68, 0.7); } 100% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } }
-        .hero-zoom { animation: heroZoom 1s ease-out forwards; }
-        @keyframes heroZoom { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1); } }
-        .map-sim { background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 20px 20px; }
-        .ambulance-move { animation: drive 10s infinite linear; }
-        @keyframes drive { 0% { transform: translateY(0); } 100% { transform: translateY(-100px); } }
+        :root {
+            --resq-red: #ff3b30;
+            --resq-dark: #0a0a0c;
+            --glass: rgba(255, 255, 255, 0.08);
+        }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: #000; 
+            color: white;
+            overscroll-behavior: none;
+        }
+        .app-container {
+            max-width: 400px;
+            height: 100vh;
+            margin: 0 auto;
+            position: relative;
+            background: var(--resq-dark);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+        .glass { background: var(--glass); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .bg-mesh {
+            background: radial-gradient(circle at 0% 0%, #1e1b4b 0%, transparent 50%),
+                        radial-gradient(circle at 100% 100%, #450a0a 0%, transparent 50%);
+        }
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        .emergency-blink { animation: redBlink 0.8s infinite alternate; }
+        @keyframes redBlink { from { background: #450a0a; } to { background: #ff3b30; } }
+        .hero-reveal { animation: heroReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes heroReveal { 0% { transform: scale(0.8) translateY(20px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+        .swipe-track { height: 64px; border-radius: 32px; position: relative; overflow: hidden; background: rgba(255,255,255,0.05); }
+        .swipe-handle { width: 56px; height: 56px; border-radius: 28px; background: white; position: absolute; left: 4px; top: 4px; display: flex; align-items: center; justify-content: center; cursor: grab; z-index: 10; transition: transform 0.1s; color: black; }
+        input:focus + label, input:not(:placeholder-shown) + label { transform: translateY(-24px) scale(0.8); color: #ff3b30; }
+        .tab-active { color: #ff3b30; position: relative; }
+        .tab-active::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: #ff3b30; }
+        ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen">
 
-<div class="phone-container flex flex-col">
-    <div class="h-8 bg-black flex justify-between items-center px-8 text-white text-xs z-50">
-        <span id="live-clock">12:00</span>
+<div class="app-container border-x border-white/5">
+    
+    <div id="status-bar" class="hidden shrink-0 px-6 pt-4 pb-2 flex justify-between items-center z-50 bg-transparent">
         <div class="flex items-center gap-2">
-            <i class="fas fa-signal"></i>
-            <div id="battery-ui" class="flex items-center gap-1">
-                <span id="bat-level">--%</span>
-                <i id="bat-icon" class="fas fa-battery-half"></i>
-            </div>
+            <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span id="top-loc" class="text-[10px] font-bold tracking-tight opacity-70 truncate max-w-[120px]">Detecting...</span>
+        </div>
+        <div class="flex items-center gap-3 text-[10px] font-bold">
+            <span id="bat-val">--%</span>
+            <i id="bat-icon" class="fas fa-battery-three-quarters"></i>
         </div>
     </div>
 
-    <div id="app-content" class="flex-1 relative overflow-y-auto pb-20">
+    <main class="flex-1 relative">
         
-        <section id="login-screen" class="p-8 pt-20 flex flex-col h-full bg-slate-900 text-white">
-            <div class="mb-12 text-center">
-                <div class="w-20 h-20 bg-red-600 rounded-3xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-red-900/40">
-                    <i class="fas fa-ambulance text-3xl"></i>
+        <section id="screen-login" class="absolute inset-0 z-[100] bg-mesh p-8 flex flex-col justify-center transition-all duration-500">
+            <div class="mb-12">
+                <div class="w-16 h-16 bg-white rounded-2xl mb-6 flex items-center justify-center rotate-3 shadow-xl shadow-red-500/20">
+                    <i class="fas fa-ambulance text-3xl text-red-600"></i>
                 </div>
-                <h1 class="text-3xl font-bold tracking-tight">ResQ <span class="text-red-500 underline decoration-2">Driver</span></h1>
-                <p class="text-slate-400 mt-2">Emergency Response Protocol</p>
+                <h1 class="text-4xl font-extrabold tracking-tighter">ResQ <span class="text-red-500 underline decoration-4">Driver</span></h1>
+                <p class="text-white/50 mt-2 font-medium">Emergency Response Network</p>
             </div>
 
-            <div class="space-y-4">
-                <div class="glass p-4 rounded-2xl">
-                    <label class="text-xs uppercase tracking-widest text-slate-500 font-bold">Phone Number</label>
-                    <input id="phone-input" type="tel" placeholder="+91 89782 57449" class="w-full bg-transparent outline-none text-lg mt-1" maxlength="10">
-                </div>
-                <button onclick="sendOTP()" class="w-full py-4 bg-red-600 hover:bg-red-500 transition rounded-2xl font-bold shadow-lg">Request Access</button>
-                <div id="otp-demo" class="hidden text-center text-red-400 font-mono text-sm mt-2 animate-pulse"></div>
-
-                <div id="otp-area" class="hidden space-y-4 mt-6">
-                    <div class="glass p-4 rounded-2xl border-red-500/50">
-                        <label class="text-xs uppercase tracking-widest text-slate-500 font-bold text-center block">Enter 6-Digit OTP</label>
-                        <input id="otp-input" type="text" placeholder="••••••" class="w-full bg-transparent outline-none text-center text-2xl tracking-[1rem] mt-2" maxlength="6">
-                    </div>
-                    <button onclick="verifyOTP()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-50 transition rounded-2xl font-bold">Verify & Start Shift</button>
-                </div>
-            </div>
-        </section>
-
-        <section id="dashboard-screen" class="hidden p-6 text-white bg-slate-950 min-h-full">
-            <div class="flex justify-between items-center mb-8">
-                <div>
-                    <h2 class="text-slate-400 text-sm">Welcome back,</h2>
-                    <p class="text-xl font-bold">Officer Rahul</p>
-                </div>
-                <div class="relative">
-                    <input type="checkbox" id="status-toggle" class="sr-only peer" checked onchange="toggleDuty()">
-                    <div class="w-14 h-7 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mb-8">
-                <div class="glass p-4 rounded-2xl">
-                    <p class="text-xs text-slate-400">Total Trips</p>
-                    <p class="text-2xl font-bold">128</p>
-                </div>
-                <div class="glass p-4 rounded-2xl">
-                    <p class="text-xs text-slate-400">Rating</p>
-                    <p class="text-2xl font-bold text-yellow-400">4.9 <i class="fas fa-star text-sm"></i></p>
-                </div>
-            </div>
-
-            <div class="glass p-5 rounded-3xl mb-6 relative overflow-hidden">
-                <div class="flex items-start gap-4">
-                    <div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-location-arrow text-blue-400"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs text-slate-400 uppercase">Live Precinct</p>
-                        <p id="geo-location" class="text-sm font-medium mt-1 italic text-emerald-400 font-mono">Fetching coordinates...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="battery-card" class="glass p-5 rounded-3xl mb-6 border-l-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-slate-400 uppercase tracking-tighter">Device Power</p>
-                        <p id="bat-status-text" class="text-lg font-bold">75% • Optimal</p>
-                    </div>
-                    <i id="bat-big-icon" class="fas fa-battery-full text-2xl"></i>
-                </div>
-            </div>
-
-            <div class="mt-10 text-center">
-                <div class="inline-block px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                    <span class="status-pulse pulse-red inline-block mr-8 !static"></span>
-                    <span class="text-xs text-emerald-400 font-bold uppercase tracking-widest">Awaiting Emergency Dispatch</span>
-                </div>
-            </div>
-        </section>
-
-        <div id="emergency-alert" class="hidden fixed inset-0 bg-red-600/90 z-[60] p-6 flex items-center justify-center">
-            <div class="bg-white rounded-[3rem] w-full p-8 text-slate-900 shadow-2xl transform scale-100 transition-transform">
-                <div class="flex justify-between items-start mb-6">
-                    <div class="bg-red-100 p-3 rounded-2xl text-red-600">
-                        <i class="fas fa-heartbeat text-3xl animate-pulse"></i>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs font-bold uppercase text-slate-400">Time to Respond</p>
-                        <p id="timer" class="text-3xl font-black text-red-600">15s</p>
-                    </div>
+            <div class="space-y-6">
+                <div class="relative group">
+                    <input type="tel" id="login-phone" placeholder=" " class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 outline-none focus:border-red-500 transition-all text-lg font-bold">
+                    <label class="absolute left-5 top-4 text-white/40 pointer-events-none transition-all">Phone Number</label>
                 </div>
                 
-                <h3 class="text-2xl font-black mb-2">CRITICAL REQUEST</h3>
-                <div class="space-y-4 mb-8">
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-map-marker-alt text-red-500"></i>
-                        <span id="req-loc" class="text-xl font-bold">Kukatpally</span>
+                <div id="otp-box" class="hidden space-y-4">
+                    <div class="flex justify-between gap-2">
+                        <input type="text" maxlength="1" class="otp-in w-full h-14 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-bold outline-none focus:border-red-500">
+                        <input type="text" maxlength="1" class="otp-in w-full h-14 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-bold outline-none focus:border-red-500">
+                        <input type="text" maxlength="1" class="otp-in w-full h-14 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-bold outline-none focus:border-red-500">
+                        <input type="text" maxlength="1" class="otp-in w-full h-14 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-bold outline-none focus:border-red-500">
                     </div>
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-road text-slate-400"></i>
-                        <span class="text-slate-600">2.4 km away (Est. 4 mins)</span>
-                    </div>
-                    <div class="inline-block px-3 py-1 bg-red-600 text-white text-[10px] rounded-full font-bold">HIGH PRIORITY</div>
+                    <p id="demo-otp-txt" class="text-center text-xs font-bold text-red-500 uppercase tracking-widest animate-pulse"></p>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <button onclick="rejectRide()" class="py-4 bg-slate-100 rounded-2xl font-bold text-slate-500">REJECT</button>
-                    <button onclick="acceptRide()" class="py-4 bg-red-600 text-white rounded-2xl font-bold shadow-lg shadow-red-200">ACCEPT</button>
-                </div>
+                <button id="btn-login-main" onclick="handleLoginStep()" class="w-full bg-red-600 hover:bg-red-500 py-5 rounded-2xl font-bold text-lg shadow-xl shadow-red-900/20 transition-all active:scale-95">
+                    Send OTP
+                </button>
             </div>
-        </div>
+        </section>
 
-        <section id="ride-screen" class="hidden h-full flex flex-col bg-slate-900">
-            <div class="h-1/2 map-sim relative overflow-hidden bg-slate-800">
-                <div class="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
-                <div id="amb-tracker" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ambulance-move">
-                    <div class="relative">
-                        <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-1 bg-blue-500 animate-pulse"></div>
-                        <i class="fas fa-ambulance text-4xl text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]"></i>
-                    </div>
-                </div>
-                <div class="absolute bottom-4 left-4 right-4 glass p-3 rounded-xl flex items-center justify-between text-white text-xs">
-                    <span>En-route to <b id="active-dest">JNTU</b></span>
-                    <span class="text-emerald-400 font-bold">LIVE</span>
-                </div>
-            </div>
-            
-            <div class="flex-1 bg-white rounded-t-[2.5rem] -mt-8 p-8 flex flex-col justify-between">
+        <section id="screen-dash" class="hidden absolute inset-0 overflow-y-auto px-6 pt-2 pb-24 transition-all duration-300">
+            <div class="flex justify-between items-start mt-4 mb-8">
                 <div>
-                    <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6"></div>
-                    <p id="ride-status" class="text-red-600 font-bold uppercase tracking-widest text-sm mb-2">Emergency Pickup</p>
-                    <h2 class="text-2xl font-black text-slate-800 mb-6">Patient Extraction</h2>
-                    
-                    <div class="space-y-6">
-                        <div class="flex gap-4">
-                            <div class="flex flex-col items-center">
-                                <div class="w-3 h-3 rounded-full bg-red-600"></div>
-                                <div class="w-0.5 h-10 bg-slate-100"></div>
-                                <div class="w-3 h-3 rounded-full bg-blue-600"></div>
-                            </div>
-                            <div class="space-y-4">
-                                <div>
-                                    <p class="text-[10px] text-slate-400 font-bold uppercase">Pickup Location</p>
-                                    <p id="pickup-text" class="text-sm font-semibold">Miyapur Metro Station</p>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] text-slate-400 font-bold uppercase">Drop-off Point</p>
-                                    <p class="text-sm font-semibold">ResQ General Hospital</p>
-                                </div>
-                            </div>
+                    <h2 class="text-2xl font-extrabold tracking-tight">Officer Rahul</h2>
+                    <p class="text-white/40 text-xs font-semibold uppercase tracking-widest">Omni Hospital Kukatpally</p>
+                </div>
+                <div class="flex flex-col items-end gap-2">
+                    <button id="duty-toggle" onclick="toggleDuty()" class="w-12 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 relative transition-all">
+                        <div class="absolute right-1 top-1 w-4 h-4 rounded-full bg-emerald-500 shadow-lg"></div>
+                    </button>
+                    <span id="duty-label" class="text-[9px] font-bold text-emerald-500 uppercase">Online</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-8">
+                <div class="glass p-4 rounded-3xl">
+                    <p class="text-[10px] text-white/40 font-bold uppercase mb-1">Trips Today</p>
+                    <p class="text-2xl font-extrabold">12</p>
+                </div>
+                <div class="glass p-4 rounded-3xl">
+                    <p class="text-[10px] text-white/40 font-bold uppercase mb-1">Score</p>
+                    <div class="flex items-center gap-1">
+                        <span class="text-2xl font-extrabold text-yellow-500">98</span>
+                        <i class="fas fa-bolt text-yellow-500 text-xs"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-sm">Performance</h3>
+                    <span class="text-[10px] font-bold text-red-500">Top 5% in Region</span>
+                </div>
+                <div class="h-32 glass rounded-3xl p-4 flex items-end gap-2 justify-between">
+                    <div class="w-full bg-white/10 rounded-t-lg h-[40%]"></div>
+                    <div class="w-full bg-white/10 rounded-t-lg h-[70%]"></div>
+                    <div class="w-full bg-red-500/50 rounded-t-lg h-[50%]"></div>
+                    <div class="w-full bg-white/10 rounded-t-lg h-[90%]"></div>
+                    <div class="w-full bg-white/10 rounded-t-lg h-[30%]"></div>
+                    <div class="w-full bg-red-500 rounded-t-lg h-[100%] shimmer"></div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h3 class="font-bold text-sm mb-4">Leaderboard</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs font-bold text-white/30 italic">01</span>
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-500 to-amber-200"></div>
+                            <span class="text-xs font-bold">K. Vikram</span>
+                        </div>
+                        <span class="text-xs font-bold">2,450 pts</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 rounded-2xl bg-red-600/10 border border-red-500/20">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs font-bold text-red-500 italic">04</span>
+                            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold">ME</div>
+                            <span class="text-xs font-bold">Rahul (You)</span>
+                        </div>
+                        <span class="text-xs font-bold">1,890 pts</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div id="modal-request" class="hidden absolute inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-6">
+            <div id="emergency-bg" class="absolute inset-0 opacity-20"></div>
+            
+            <div class="w-full glass rounded-[40px] p-8 text-center relative overflow-hidden">
+                <div id="req-type-tag" class="inline-block px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter mb-4"></div>
+                
+                <h2 id="req-condition" class="text-3xl font-black mb-1">CARDIAC ARREST</h2>
+                <p id="req-patient" class="text-white/50 text-sm mb-8 italic">Patient: Mr. Suresh (Age: 54)</p>
+                
+                <div class="space-y-4 mb-10">
+                    <div class="flex items-center justify-between text-left glass p-4 rounded-2xl">
+                        <div>
+                            <p class="text-[10px] text-white/40 font-bold uppercase">Pickup Location</p>
+                            <p id="req-loc-name" class="font-bold text-red-500">Miyapur Metro</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] text-white/40 font-bold uppercase">Distance</p>
+                            <p class="font-bold">1.2 KM</p>
                         </div>
                     </div>
                 </div>
 
-                <div id="swipe-container" class="swipe-slider mb-4">
-                    <div id="swipe-text" class="absolute inset-0 flex items-center justify-center text-sm font-bold text-slate-400 uppercase tracking-widest">Swipe to Start Trip</div>
-                    <div id="swipe-btn" class="swipe-handle">
-                        <i class="fas fa-chevron-right text-white"></i>
+                <div class="relative w-24 h-24 mx-auto mb-10">
+                    <svg class="w-full h-full -rotate-90">
+                        <circle cx="48" cy="48" r="44" stroke="currentColor" stroke-width="4" fill="transparent" class="text-white/10"/>
+                        <circle id="timer-circle" cx="48" cy="48" r="44" stroke="currentColor" stroke-width="4" fill="transparent" class="text-red-500" stroke-dasharray="276" stroke-dashoffset="0"/>
+                    </svg>
+                    <div id="timer-val" class="absolute inset-0 flex items-center justify-center text-3xl font-black italic">15</div>
+                </div>
+
+                <button onclick="acceptRequest()" class="w-full bg-white text-black py-5 rounded-3xl font-black text-xl hover:scale-105 transition-transform active:scale-95">
+                    ACCEPT MISSION
+                </button>
+            </div>
+        </div>
+
+        <section id="screen-ride" class="hidden absolute inset-0 flex flex-col bg-[#111]">
+            <div class="relative flex-1 bg-[#1a1a1a] overflow-hidden">
+                <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 30px 30px;"></div>
+                
+                <svg class="absolute inset-0 w-full h-full">
+                    <path id="route-path" d="M 200 600 L 200 400 L 50 400 L 50 100" fill="none" stroke="#ff3b30" stroke-width="4" stroke-dasharray="10 10" class="opacity-40" />
+                </svg>
+
+                <div id="ambulance-marker" class="absolute bottom-[10%] left-[45%] transition-all duration-1000">
+                    <div class="relative">
+                        <div class="absolute -top-10 -left-4 bg-red-600 text-[8px] font-bold px-2 py-1 rounded-md animate-bounce">EN-ROUTE</div>
+                        <i class="fas fa-ambulance text-3xl text-white drop-shadow-[0_0_15px_rgba(255,59,48,1)]"></i>
                     </div>
                 </div>
 
-                <div id="hospital-notify" class="hidden animate-bounce text-center p-3 bg-blue-50 rounded-2xl text-blue-700 text-xs font-bold border border-blue-100">
-                    🏥 ALERT SENT: Stretcher & ICU Team Ready
+                <div id="hosp-near-alert" class="hidden absolute top-20 left-6 right-6 glass p-5 rounded-[2rem] border-blue-500/30 animate-pulse">
+                    <p class="text-[10px] font-black text-blue-500 uppercase mb-2">Hospital Sync: Active</p>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-xs font-bold text-white/50">ER GATE</p>
+                            <p class="text-lg font-black">Gate 04</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-white/50">STRETCHER</p>
+                            <p class="text-lg font-black text-blue-400">#RESQ-09</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="shrink-0 bg-black p-8 rounded-t-[3rem] border-t border-white/5">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <p id="step-label" class="text-red-500 text-[10px] font-black uppercase tracking-widest">Step 1 of 6</p>
+                        <h4 id="status-title" class="text-xl font-black">Moving to Patient</h4>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl glass flex items-center justify-center">
+                        <i class="fas fa-location-arrow text-white/40"></i>
+                    </div>
+                </div>
+
+                <div class="swipe-track mb-4">
+                    <div id="swipe-text" class="absolute inset-0 flex items-center justify-center text-xs font-bold text-white/20 uppercase tracking-[0.2em]">Swipe to Arrive</div>
+                    <div id="swipe-handle" class="swipe-handle">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <section id="success-screen" class="hidden fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center justify-center p-8 text-center">
-            <div class="hero-zoom">
-                <div class="w-32 h-32 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(16,185,129,0.4)]">
+        <section id="screen-hero" class="hidden absolute inset-0 z-[200] bg-black flex flex-col items-center justify-center p-8 text-center">
+            <div class="hero-reveal">
+                <div class="w-32 h-32 bg-emerald-500 rounded-full mx-auto mb-8 flex items-center justify-center shadow-[0_0_80px_rgba(16,185,129,0.4)]">
                     <i class="fas fa-heart text-5xl text-white"></i>
                 </div>
                 <h1 class="text-4xl font-black text-white mb-4">You are a Hero ❤️</h1>
-                <p class="text-slate-400 text-lg mb-8">Hospital handover successful. Life saved.</p>
-                <button onclick="resetApp()" class="px-10 py-4 bg-white text-slate-900 rounded-full font-bold shadow-xl">Back to Base</button>
+                <p class="text-white/60 text-lg mb-12">Hospital handover successful.<br><span class="text-emerald-400">Another life saved today.</span></p>
+                
+                <div class="glass w-full p-6 rounded-[2.5rem] mb-12 flex justify-around">
+                    <div>
+                        <p class="text-[10px] text-white/40 font-bold uppercase">Distance</p>
+                        <p class="text-lg font-bold">4.8 KM</p>
+                    </div>
+                    <div class="w-px h-8 bg-white/10 mt-2"></div>
+                    <div>
+                        <p class="text-[10px] text-white/40 font-bold uppercase">Time</p>
+                        <p class="text-lg font-bold">14 Mins</p>
+                    </div>
+                </div>
+
+                <button onclick="returnToBase()" class="w-full bg-white text-black py-5 rounded-3xl font-black">RETURN TO BASE</button>
             </div>
         </section>
 
-    </div>
+    </main>
 
-    <nav id="bottom-nav" class="absolute bottom-0 inset-x-0 h-20 glass border-t border-white/10 flex justify-around items-center px-4 z-40 transition-transform">
-        <button onclick="showScreen('dashboard-screen')" class="text-red-500"><i class="fas fa-home text-xl"></i></button>
-        <button class="text-slate-500 opacity-50"><i class="fas fa-history text-xl"></i></button>
-        <button onclick="window.location.href='tel:8978257449'" class="w-12 h-12 bg-red-600 rounded-full -mt-10 flex items-center justify-center text-white shadow-lg border-4 border-slate-950">
-            <i class="fas fa-phone"></i>
-        </button>
-        <button class="text-slate-500 opacity-50"><i class="fas fa-bell text-xl"></i></button>
-        <button onclick="logout()" class="text-slate-500"><i class="fas fa-sign-out-alt text-xl"></i></button>
+    <nav id="bottom-nav" class="hidden shrink-0 h-20 glass border-t border-white/5 flex justify-around items-center px-4 z-40">
+        <button onclick="showScreen('screen-dash')" class="p-3 tab-active"><i class="fas fa-home-alt text-lg"></i></button>
+        <button class="p-3 text-white/20"><i class="fas fa-history text-lg"></i></button>
+        <div class="w-14 h-14 bg-red-600 rounded-2xl flex items-center justify-center -mt-10 shadow-xl shadow-red-900/40 border-4 border-[#0a0a0c]">
+            <a href="tel:8978257449"><i class="fas fa-phone-alt text-white"></i></a>
+        </div>
+        <button class="p-3 text-white/20"><i class="fas fa-chart-pie text-lg"></i></button>
+        <button onclick="logout()" class="p-3 text-white/20"><i class="fas fa-cog text-lg"></i></button>
     </nav>
+
+    <div id="toast" class="fixed top-8 left-1/2 -translate-x-1/2 z-[300] bg-white text-black px-6 py-3 rounded-full font-bold text-xs shadow-2xl opacity-0 translate-y-[-20px] transition-all"></div>
 </div>
 
-<audio id="siren-sound" loop src="https://www.soundjay.com/mechanical/sounds/ambulance-siren-01.mp3"></audio>
-<audio id="hero-sound" src="https://www.soundjay.com/human/sounds/applause-01.mp3"></audio>
+<audio id="siren" loop src="https://actions.google.com/sounds/v1/emergency/ambulance_siren_short.ogg"></audio>
+<audio id="success-sound" src="https://actions.google.com/sounds/v1/impacts/crash_metal.ogg"></audio>
 
 <script>
-    let currentOTP = "";
-    let ridePhase = 0; // 0: Start, 1: Arrived, 2: Complete
-    let timerInterval;
-    const locations = ["JNTU", "KPHB", "Miyapur", "Kukatpally", "Pragathi Nagar"];
-
-    // INIT
-    window.onload = () => {
-        if(localStorage.getItem('driver_session')) {
-            showScreen('dashboard-screen');
-        }
-        updateBattery();
-        updateLocation();
-        setInterval(updateClock, 1000);
-        setInterval(updateLocation, 10000);
-        setInterval(simulateRandomRequest, 25000);
+    // State Management
+    let state = {
+        isLoggedIn: localStorage.getItem('resq_logged') === 'true',
+        isOnline: true,
+        currentOTP: '',
+        activeRide: null,
+        ridePhase: 0,
+        timer: 15,
+        timerInt: null
     };
 
-    function updateClock() {
-        const now = new Date();
-        document.getElementById('live-clock').innerText = now.getHours() + ":" + now.getMinutes().toString().padStart(2, '0');
-    }
+    const LOCATIONS = ["JNTU", "KPHB", "Kukatpally", "Miyapur", "Pragathi Nagar"];
+    const PHASES = [
+        { title: "Moving to Patient", label: "Swipe to Arrive", step: "Step 1 of 6" },
+        { title: "Near Patient", label: "Swipe to Pickup", step: "Step 2 of 6" },
+        { title: "Patient Picked Up", label: "Swipe to Start Hospital Trip", step: "Step 3 of 6" },
+        { title: "Moving to Hospital", label: "Swipe to Reach Hospital", step: "Step 4 of 6" },
+        { title: "At Hospital Gate", label: "Swipe to Handover", step: "Step 5 of 6" },
+        { title: "Handover Complete", label: "Swipe to Finish Mission", step: "Step 6 of 6" }
+    ];
 
-    // LOGIN LOGIC
-    function sendOTP() {
-        const phone = document.getElementById('phone-input').value;
-        if(phone.length < 10) return alert("Enter valid phone");
+    // Initialization
+    window.onload = () => {
+        if (state.isLoggedIn) {
+            setupApp();
+        }
+        initGeo();
+        initBattery();
+        initOTPInputs();
+    };
+
+    function setupApp() {
+        showScreen('screen-dash');
+        document.getElementById('screen-login').classList.add('translate-y-full', 'opacity-0');
+        document.getElementById('bottom-nav').classList.remove('hidden');
+        document.getElementById('status-bar').classList.remove('hidden');
         
-        currentOTP = Math.floor(100000 + Math.random() * 900000).toString();
-        document.getElementById('otp-demo').innerText = "DEMO OTP: " + currentOTP;
-        document.getElementById('otp-demo').classList.remove('hidden');
-        document.getElementById('otp-area').classList.remove('hidden');
+        // Random Emergency Logic
+        setInterval(() => {
+            if (state.isOnline && !state.activeRide && Math.random() > 0.7) {
+                triggerEmergency();
+            }
+        }, 15000);
     }
 
-    function verifyOTP() {
-        const input = document.getElementById('otp-input').value;
-        if(input === currentOTP) {
-            localStorage.setItem('driver_session', 'active');
-            showScreen('dashboard-screen');
-            showToast("Authenticated Successfully");
+    // Auth System
+    function initOTPInputs() {
+        const inputs = document.querySelectorAll('.otp-in');
+        inputs.forEach((input, index) => {
+            input.onkeyup = (e) => {
+                if (e.target.value.length === 1 && index < 3) inputs[index + 1].focus();
+                if (e.key === 'Backspace' && index > 0) inputs[index - 1].focus();
+            };
+        });
+    }
+
+    function handleLoginStep() {
+        const phone = document.getElementById('login-phone').value;
+        const btn = document.getElementById('btn-login-main');
+        
+        if (!state.currentOTP) {
+            if (phone.length < 10) return showToast("Enter valid phone number");
+            state.currentOTP = Math.floor(1000 + Math.random() * 9000).toString();
+            document.getElementById('otp-box').classList.remove('hidden');
+            document.getElementById('demo-otp-txt').innerText = "Demo OTP: " + state.currentOTP;
+            btn.innerText = "Verify & Login";
         } else {
-            alert("Invalid OTP");
+            const entered = Array.from(document.querySelectorAll('.otp-in')).map(i => i.value).join('');
+            if (entered === state.currentOTP) {
+                localStorage.setItem('resq_logged', 'true');
+                setupApp();
+            } else {
+                showToast("Invalid OTP. Try again.");
+            }
+        }
+    }
+
+    // Emergency Core
+    function triggerEmergency() {
+        const isCritical = Math.random() > 0.5;
+        const condition = isCritical ? "CARDIAC ARREST" : "ROAD ACCIDENT";
+        const patient = isCritical ? "Mr. Suresh (Age: 54)" : "Unknown Male (Age: 25)";
+        const loc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
+        
+        document.getElementById('req-condition').innerText = condition;
+        document.getElementById('req-patient').innerText = "Patient: " + patient;
+        document.getElementById('req-loc-name').innerText = loc;
+        
+        const tag = document.getElementById('req-type-tag');
+        if(isCritical) {
+            tag.innerText = "Critical Auto-Assign";
+            tag.className = "emergency-blink inline-block px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter mb-4 text-white";
+        } else {
+            tag.innerText = "Hospital Booking";
+            tag.className = "bg-emerald-500 inline-block px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter mb-4 text-black";
+        }
+
+        document.getElementById('modal-request').classList.remove('hidden');
+        document.getElementById('siren').play();
+        
+        state.timer = 15;
+        const timerCircle = document.getElementById('timer-circle');
+        state.timerInt = setInterval(() => {
+            state.timer--;
+            document.getElementById('timer-val').innerText = state.timer;
+            const offset = 276 - (state.timer / 15) * 276;
+            timerCircle.style.strokeDashoffset = offset;
+            
+            if (state.timer <= 0) {
+                closeEmergency();
+                showToast("Request Missed - Moving to next driver");
+            }
+        }, 1000);
+    }
+
+    function acceptRequest() {
+        clearInterval(state.timerInt);
+        document.getElementById('siren').pause();
+        document.getElementById('siren').currentTime = 0;
+        document.getElementById('modal-request').classList.add('hidden');
+        state.activeRide = true;
+        state.ridePhase = 0;
+        updateRideUI();
+        showScreen('screen-ride');
+    }
+
+    function closeEmergency() {
+        clearInterval(state.timerInt);
+        document.getElementById('siren').pause();
+        document.getElementById('modal-request').classList.add('hidden');
+    }
+
+    // Swipe Logic
+    const handle = document.getElementById('swipe-handle');
+    let isSwiping = false;
+    let startX = 0;
+
+    handle.onmousedown = handle.ontouchstart = (e) => {
+        isSwiping = true;
+        startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    };
+
+    window.onmousemove = window.ontouchmove = (e) => {
+        if (!isSwiping) return;
+        const currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        let delta = currentX - startX;
+        if (delta < 0) delta = 0;
+        if (delta > 270) delta = 270;
+        handle.style.transform = `translateX(${delta}px)`;
+        
+        if (delta >= 270) {
+            isSwiping = false;
+            handle.style.transform = `translateX(0px)`;
+            nextPhase();
+        }
+    };
+
+    window.onmouseup = window.ontouchend = () => {
+        if (!isSwiping) return;
+        isSwiping = false;
+        handle.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+        handle.style.transform = `translateX(0px)`;
+        setTimeout(() => handle.style.transition = 'none', 400);
+    };
+
+    function nextPhase() {
+        state.ridePhase++;
+        if (state.ridePhase >= PHASES.length) {
+            finishTrip();
+        } else {
+            updateRideUI();
+            moveAmbulance();
+        }
+    }
+
+    function updateRideUI() {
+        const p = PHASES[state.ridePhase];
+        document.getElementById('status-title').innerText = p.title;
+        document.getElementById('swipe-text').innerText = p.label;
+        document.getElementById('step-label').innerText = p.step;
+        
+        if (state.ridePhase >= 3) {
+            document.getElementById('hosp-near-alert').classList.remove('hidden');
+        }
+    }
+
+    function moveAmbulance() {
+        const amb = document.getElementById('ambulance-marker');
+        const pos = [
+            { b: '10%', l: '45%' },
+            { b: '40%', l: '45%' },
+            { b: '40%', l: '10%' },
+            { b: '60%', l: '10%' },
+            { b: '85%', l: '10%' },
+            { b: '85%', l: '50%' }
+        ];
+        const p = pos[state.ridePhase];
+        amb.style.bottom = p.b;
+        amb.style.left = p.l;
+    }
+
+    function finishTrip() {
+        showScreen('screen-hero');
+        document.getElementById('success-sound').play();
+    }
+
+    function returnToBase() {
+        state.activeRide = null;
+        state.ridePhase = 0;
+        document.getElementById('hosp-near-alert').classList.add('hidden');
+        showScreen('screen-dash');
+    }
+
+    // UI Helpers
+    function showScreen(id) {
+        ['screen-dash', 'screen-ride', 'screen-hero'].forEach(s => {
+            document.getElementById(s).classList.add('hidden');
+        });
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.opacity = '1';
+        t.style.transform = 'translate(-50%, 20px)';
+        setTimeout(() => {
+            t.style.opacity = '0';
+            t.style.transform = 'translate(-50%, -20px)';
+        }, 3000);
+    }
+
+    function toggleDuty() {
+        state.isOnline = !state.isOnline;
+        const btn = document.getElementById('duty-toggle');
+        const dot = btn.querySelector('div');
+        const label = document.getElementById('duty-label');
+        
+        if (state.isOnline) {
+            btn.className = "w-12 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 relative transition-all";
+            dot.className = "absolute right-1 top-1 w-4 h-4 rounded-full bg-emerald-500 shadow-lg";
+            label.innerText = "Online";
+            label.className = "text-[9px] font-bold text-emerald-500 uppercase";
+            showToast("You are now ONLINE");
+        } else {
+            btn.className = "w-12 h-6 rounded-full bg-white/5 border border-white/10 relative transition-all";
+            dot.className = "absolute left-1 top-1 w-4 h-4 rounded-full bg-white/20";
+            label.innerText = "Offline";
+            label.className = "text-[9px] font-bold text-white/30 uppercase";
+            showToast("You are now OFFLINE");
+        }
+    }
+
+    function initGeo() {
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(pos => {
+                const area = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
+                document.getElementById('top-loc').innerText = `📍 ${area} (${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)})`;
+            });
+        }
+    }
+
+    function initBattery() {
+        if (navigator.getBattery) {
+            navigator.getBattery().then(bat => {
+                const update = () => {
+                    const level = Math.floor(bat.level * 100);
+                    document.getElementById('bat-val').innerText = level + "%";
+                    const icon = document.getElementById('bat-icon');
+                    if (level < 20) icon.className = "fas fa-battery-quarter text-red-500";
+                    else if (level < 50) icon.className = "fas fa-battery-half text-yellow-500";
+                    else icon.className = "fas fa-battery-full text-emerald-500";
+                };
+                update();
+                bat.onlevelchange = update;
+                bat.onchargingchange = update;
+            });
         }
     }
 
@@ -283,186 +580,7 @@
         localStorage.clear();
         location.reload();
     }
-
-    // SCREEN NAV
-    function showScreen(id) {
-        ['login-screen', 'dashboard-screen', 'ride-screen', 'success-screen'].forEach(s => {
-            document.getElementById(s).classList.add('hidden');
-        });
-        document.getElementById(id).classList.remove('hidden');
-        
-        const nav = document.getElementById('bottom-nav');
-        if(id === 'dashboard-screen') nav.classList.remove('translate-y-full');
-        else nav.classList.add('translate-y-full');
-    }
-
-    // BATTERY & LOCATION
-    async function updateBattery() {
-        try {
-            const battery = await navigator.getBattery();
-            const updateUI = () => {
-                const level = Math.round(battery.level * 100);
-                document.getElementById('bat-level').innerText = level + "%";
-                document.getElementById('bat-status-text').innerText = `${level}% • ${battery.charging ? 'Charging' : 'On Battery'}`;
-                
-                const card = document.getElementById('battery-card');
-                const icon = document.getElementById('bat-big-icon');
-                
-                if(level < 20) {
-                    card.classList.add('border-red-500');
-                    icon.className = "fas fa-battery-quarter text-red-500";
-                    if(level < 15) alert("Low Battery – Please charge device");
-                } else if(level < 50) {
-                    card.classList.add('border-yellow-500');
-                    icon.className = "fas fa-battery-half text-yellow-500";
-                } else {
-                    card.classList.add('border-emerald-500');
-                    icon.className = "fas fa-battery-full text-emerald-500";
-                }
-            };
-            updateUI();
-            battery.addEventListener('levelchange', updateUI);
-            battery.addEventListener('chargingchange', updateUI);
-        } catch(e) { console.log("Battery API not supported"); }
-    }
-
-    function updateLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(pos => {
-                document.getElementById('geo-location').innerText = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
-            }, () => {
-                document.getElementById('geo-location').innerText = "Miyapur, Hyderabad";
-            });
-        }
-    }
-
-    // EMERGENCY LOGIC
-    function simulateRandomRequest() {
-        if(!localStorage.getItem('driver_session') || document.getElementById('ride-screen').offsetParent !== null) return;
-        
-        const loc = locations[Math.floor(Math.random()*locations.length)];
-        document.getElementById('req-loc').innerText = loc;
-        document.getElementById('emergency-alert').classList.remove('hidden');
-        document.getElementById('siren-sound').play();
-        
-        let count = 15;
-        document.getElementById('timer').innerText = count + "s";
-        timerInterval = setInterval(() => {
-            count--;
-            document.getElementById('timer').innerText = count + "s";
-            if(count <= 0) rejectRide();
-        }, 1000);
-    }
-
-    function acceptRide() {
-        clearInterval(timerInterval);
-        document.getElementById('siren-sound').pause();
-        document.getElementById('siren-sound').currentTime = 0;
-        document.getElementById('emergency-alert').classList.add('hidden');
-        
-        const dest = document.getElementById('req-loc').innerText;
-        document.getElementById('active-dest').innerText = dest;
-        document.getElementById('pickup-text').innerText = dest + " Cross Roads";
-        
-        ridePhase = 0;
-        updateSwipeUI();
-        showScreen('ride-screen');
-    }
-
-    function rejectRide() {
-        clearInterval(timerInterval);
-        document.getElementById('siren-sound').pause();
-        document.getElementById('emergency-alert').classList.add('hidden');
-    }
-
-    // SWIPE INTERACTION
-    const swipeBtn = document.getElementById('swipe-btn');
-    let isDragging = false;
-    let startX = 0;
-
-    swipeBtn.addEventListener('mousedown', startDrag);
-    swipeBtn.addEventListener('touchstart', startDrag);
-    window.addEventListener('mousemove', drag);
-    window.addEventListener('touchmove', drag);
-    window.addEventListener('mouseup', endDrag);
-    window.addEventListener('touchend', endDrag);
-
-    function startDrag(e) {
-        isDragging = true;
-        startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-        swipeBtn.style.transition = 'none';
-    }
-
-    function drag(e) {
-        if(!isDragging) return;
-        let x = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-        let moveX = x - startX;
-        if(moveX > 0 && moveX < 280) {
-            swipeBtn.style.transform = `translateX(${moveX}px)`;
-        }
-    }
-
-    function endDrag() {
-        if(!isDragging) return;
-        isDragging = false;
-        const currentX = parseInt(swipeBtn.style.transform.replace('translateX(', '')) || 0;
-        
-        if(currentX > 200) {
-            handlePhaseComplete();
-        } else {
-            swipeBtn.style.transition = 'transform 0.3s';
-            swipeBtn.style.transform = 'translateX(0px)';
-        }
-    }
-
-    function handlePhaseComplete() {
-        ridePhase++;
-        swipeBtn.style.transform = 'translateX(0px)';
-        
-        if(ridePhase === 1) { // Arrived
-            document.getElementById('ride-status').innerText = "Patient On-Board";
-            document.getElementById('ride-status').classList.replace('text-red-600', 'text-blue-600');
-            document.getElementById('hospital-notify').classList.remove('hidden');
-            document.getElementById('amb-tracker').style.animation = 'drive 5s infinite linear';
-            showToast("Hospital Notified");
-        } else if(ridePhase === 2) { // Complete
-            showSuccess();
-        }
-        updateSwipeUI();
-    }
-
-    function updateSwipeUI() {
-        const texts = ["Swipe to Start Trip", "Swipe to Arrive", "Swipe to Complete"];
-        const colors = ["#ef4444", "#3b82f6", "#10b981"];
-        document.getElementById('swipe-text').innerText = texts[ridePhase];
-        swipeBtn.style.backgroundColor = colors[ridePhase];
-    }
-
-    function showSuccess() {
-        showScreen('success-screen');
-        document.getElementById('hero-sound').play();
-    }
-
-    function resetApp() {
-        ridePhase = 0;
-        document.getElementById('hospital-notify').classList.add('hidden');
-        document.getElementById('ride-status').innerText = "Emergency Pickup";
-        document.getElementById('ride-status').classList.replace('text-blue-600', 'text-red-600');
-        showScreen('dashboard-screen');
-    }
-
-    function showToast(msg) {
-        const t = document.createElement('div');
-        t.className = "fixed top-12 left-1/2 -translate-x-1/2 bg-white text-slate-900 px-6 py-3 rounded-full font-bold shadow-2xl z-[100] animate-bounce text-sm";
-        t.innerText = "🔔 " + msg;
-        document.body.appendChild(t);
-        setTimeout(() => t.remove(), 3000);
-    }
-
-    function toggleDuty() {
-        const isOnline = document.getElementById('status-toggle').checked;
-        showToast(isOnline ? "Unit is now ACTIVE" : "Unit is OFFLINE");
-    }
 </script>
+
 </body>
 </html>
