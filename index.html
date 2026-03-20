@@ -1,468 +1,326 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ResQ Driver - Emergency Response</title>
+    <title>ResQ | Emergency Response, Reimagined</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            black: '#050505',
+                            card: '#0f1115',
+                            primary: '#ff3b30', // Emergency Red
+                            accent: '#007aff'   // Trust Blue
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { font-family: 'Inter', sans-serif; background: #0f172a; overflow-x: hidden; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .phone-container { max-width: 400px; height: 850px; margin: 20px auto; border: 12px solid #1e293b; border-radius: 45px; position: relative; overflow: hidden; background: #020617; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-        @media (max-width: 450px) { .phone-container { max-width: 100%; height: 100vh; margin: 0; border: none; border-radius: 0; } }
-        .swipe-slider { position: relative; height: 60px; background: rgba(255,255,255,0.1); border-radius: 30px; overflow: hidden; }
-        .swipe-handle { position: absolute; left: 5px; top: 5px; width: 50px; height: 50px; background: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; z-index: 10; }
-        .status-pulse { position: absolute; top: 10px; right: 10px; width: 12px; height: 12px; border-radius: 50%; }
-        .pulse-red { background: #ef4444; box-shadow: 0 0 0 rgba(239, 68, 68, 0.4); animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0px rgba(239, 68, 68, 0.7); } 100% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } }
-        .hero-zoom { animation: heroZoom 1s ease-out forwards; }
-        @keyframes heroZoom { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 1; transform: scale(1); } }
-        .map-sim { background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 20px 20px; }
-        .ambulance-move { animation: drive 10s infinite linear; }
-        @keyframes drive { 0% { transform: translateY(0); } 100% { transform: translateY(-100px); } }
+        body { background-color: #050505; color: #ffffff; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .gradient-text { background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero-glow { position: absolute; width: 40vw; height: 40vw; background: radial-gradient(circle, rgba(255, 59, 48, 0.15) 0%, transparent 70%); filter: blur(60px); z-index: -1; }
+        .btn-ripple { position: relative; overflow: hidden; }
+        .btn-ripple:after { content: ""; background: rgba(255, 255, 255, 0.3); display: block; position: absolute; border-radius: 50%; padding-top: 240%; padding-left: 240%; margin-left: -120% !important; margin-top: -120%; opacity: 0; transition: all 0.8s; }
+        .btn-ripple:active:after { padding: 0; margin: 0; opacity: 1; transition: 0s; }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen">
+<body class="selection:bg-brand-primary selection:text-white">
 
-<div class="phone-container flex flex-col">
-    <div class="h-8 bg-black flex justify-between items-center px-8 text-white text-xs z-50">
-        <span id="live-clock">12:00</span>
-        <div class="flex items-center gap-2">
-            <i class="fas fa-signal"></i>
-            <div id="battery-ui" class="flex items-center gap-1">
-                <span id="bat-level">--%</span>
-                <i id="bat-icon" class="fas fa-battery-half"></i>
+    <nav class="fixed top-0 w-full z-50 glass border-b border-white/5 py-4">
+        <div class="max-w-7xl mx-auto px-6 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center font-bold text-white shadow-[0_0_15px_rgba(255,59,48,0.4)]">R</div>
+                <span class="text-xl font-extrabold tracking-tighter">Res<span class="text-brand-primary">Q</span></span>
             </div>
+            <div class="hidden md:flex gap-8 text-sm font-medium text-gray-400">
+                <a href="#problem" class="hover:text-white transition-colors">The Problem</a>
+                <a href="#solution" class="hover:text-white transition-colors">Solution</a>
+                <a href="#how-it-works" class="hover:text-white transition-colors">How it works</a>
+                <a href="#vision" class="hover:text-white transition-colors">Vision</a>
+            </div>
+            <a href="tel:8978257449" class="bg-white text-black px-5 py-2 rounded-full text-sm font-bold hover:bg-brand-primary hover:text-white transition-all duration-300">
+                Contact Founder
+            </a>
         </div>
-    </div>
+    </nav>
 
-    <div id="app-content" class="flex-1 relative overflow-y-auto pb-20">
+    <section class="relative min-h-screen flex items-center justify-center pt-20 px-6 overflow-hidden">
+        <div class="hero-glow top-1/4 left-1/4 animate-pulse-slow"></div>
+        <div class="hero-glow bottom-1/4 right-1/4 animate-float"></div>
         
-        <section id="login-screen" class="p-8 pt-20 flex flex-col h-full bg-slate-900 text-white">
-            <div class="mb-12 text-center">
-                <div class="w-20 h-20 bg-red-600 rounded-3xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-red-900/40">
-                    <i class="fas fa-ambulance text-3xl"></i>
-                </div>
-                <h1 class="text-3xl font-bold tracking-tight">ResQ <span class="text-red-500 underline decoration-2">Driver</span></h1>
-                <p class="text-slate-400 mt-2">Emergency Response Protocol</p>
+        <div class="max-w-5xl mx-auto text-center z-10">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full glass border border-white/10 text-xs font-semibold text-brand-primary mb-8 reveal">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-primary"></span>
+                </span>
+                Solving Emergency Access
             </div>
-
-            <div class="space-y-4">
-                <div class="glass p-4 rounded-2xl">
-                    <label class="text-xs uppercase tracking-widest text-slate-500 font-bold">Phone Number</label>
-                    <input id="phone-input" type="tel" placeholder="+91 89782 57449" class="w-full bg-transparent outline-none text-lg mt-1" maxlength="10">
-                </div>
-                <button onclick="sendOTP()" class="w-full py-4 bg-red-600 hover:bg-red-500 transition rounded-2xl font-bold shadow-lg">Request Access</button>
-                <div id="otp-demo" class="hidden text-center text-red-400 font-mono text-sm mt-2 animate-pulse"></div>
-
-                <div id="otp-area" class="hidden space-y-4 mt-6">
-                    <div class="glass p-4 rounded-2xl border-red-500/50">
-                        <label class="text-xs uppercase tracking-widest text-slate-500 font-bold text-center block">Enter 6-Digit OTP</label>
-                        <input id="otp-input" type="text" placeholder="••••••" class="w-full bg-transparent outline-none text-center text-2xl tracking-[1rem] mt-2" maxlength="6">
-                    </div>
-                    <button onclick="verifyOTP()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-50 transition rounded-2xl font-bold">Verify & Start Shift</button>
-                </div>
-            </div>
-        </section>
-
-        <section id="dashboard-screen" class="hidden p-6 text-white bg-slate-950 min-h-full">
-            <div class="flex justify-between items-center mb-8">
-                <div>
-                    <h2 class="text-slate-400 text-sm">Welcome back,</h2>
-                    <p class="text-xl font-bold">Officer Rahul</p>
-                </div>
-                <div class="relative">
-                    <input type="checkbox" id="status-toggle" class="sr-only peer" checked onchange="toggleDuty()">
-                    <div class="w-14 h-7 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mb-8">
-                <div class="glass p-4 rounded-2xl">
-                    <p class="text-xs text-slate-400">Total Trips</p>
-                    <p class="text-2xl font-bold">128</p>
-                </div>
-                <div class="glass p-4 rounded-2xl">
-                    <p class="text-xs text-slate-400">Rating</p>
-                    <p class="text-2xl font-bold text-yellow-400">4.9 <i class="fas fa-star text-sm"></i></p>
-                </div>
-            </div>
-
-            <div class="glass p-5 rounded-3xl mb-6 relative overflow-hidden">
-                <div class="flex items-start gap-4">
-                    <div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-location-arrow text-blue-400"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs text-slate-400 uppercase">Live Precinct</p>
-                        <p id="geo-location" class="text-sm font-medium mt-1 italic text-emerald-400 font-mono">Fetching coordinates...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="battery-card" class="glass p-5 rounded-3xl mb-6 border-l-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-slate-400 uppercase tracking-tighter">Device Power</p>
-                        <p id="bat-status-text" class="text-lg font-bold">75% • Optimal</p>
-                    </div>
-                    <i id="bat-big-icon" class="fas fa-battery-full text-2xl"></i>
-                </div>
-            </div>
-
-            <div class="mt-10 text-center">
-                <div class="inline-block px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                    <span class="status-pulse pulse-red inline-block mr-8 !static"></span>
-                    <span class="text-xs text-emerald-400 font-bold uppercase tracking-widest">Awaiting Emergency Dispatch</span>
-                </div>
-            </div>
-        </section>
-
-        <div id="emergency-alert" class="hidden fixed inset-0 bg-red-600/90 z-[60] p-6 flex items-center justify-center">
-            <div class="bg-white rounded-[3rem] w-full p-8 text-slate-900 shadow-2xl transform scale-100 transition-transform">
-                <div class="flex justify-between items-start mb-6">
-                    <div class="bg-red-100 p-3 rounded-2xl text-red-600">
-                        <i class="fas fa-heartbeat text-3xl animate-pulse"></i>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs font-bold uppercase text-slate-400">Time to Respond</p>
-                        <p id="timer" class="text-3xl font-black text-red-600">15s</p>
-                    </div>
-                </div>
-                
-                <h3 class="text-2xl font-black mb-2">CRITICAL REQUEST</h3>
-                <div class="space-y-4 mb-8">
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-map-marker-alt text-red-500"></i>
-                        <span id="req-loc" class="text-xl font-bold">Kukatpally</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-road text-slate-400"></i>
-                        <span class="text-slate-600">2.4 km away (Est. 4 mins)</span>
-                    </div>
-                    <div class="inline-block px-3 py-1 bg-red-600 text-white text-[10px] rounded-full font-bold">HIGH PRIORITY</div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <button onclick="rejectRide()" class="py-4 bg-slate-100 rounded-2xl font-bold text-slate-500">REJECT</button>
-                    <button onclick="acceptRide()" class="py-4 bg-red-600 text-white rounded-2xl font-bold shadow-lg shadow-red-200">ACCEPT</button>
-                </div>
+            <h1 class="text-5xl md:text-8xl font-extrabold tracking-tight mb-8 reveal">
+                ResQ – Emergency <br> Response, <span class="gradient-text">Reimagined</span>
+            </h1>
+            <p class="text-lg md:text-2xl text-gray-400 max-w-2xl mx-auto mb-12 reveal" style="transition-delay: 200ms;">
+                When every second matters, access to the right ambulance should be instant. We connect people to life-saving care without the friction.
+            </p>
+            <div class="flex flex-col md:flex-row gap-4 justify-center reveal" style="transition-delay: 400ms;">
+                <a href="#contact" class="btn-ripple bg-brand-primary text-white px-8 py-4 rounded-2xl font-bold text-lg hover:scale-105 transition-transform shadow-[0_10px_30px_rgba(255,59,48,0.3)]">
+                    Connect with Founder
+                </a>
+                <a href="#problem" class="glass px-8 py-4 rounded-2xl font-bold text-lg hover:bg-white/10 transition-all">
+                    Explore the Problem
+                </a>
             </div>
         </div>
+    </section>
 
-        <section id="ride-screen" class="hidden h-full flex flex-col bg-slate-900">
-            <div class="h-1/2 map-sim relative overflow-hidden bg-slate-800">
-                <div class="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
-                <div id="amb-tracker" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ambulance-move">
-                    <div class="relative">
-                        <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-1 bg-blue-500 animate-pulse"></div>
-                        <i class="fas fa-ambulance text-4xl text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]"></i>
-                    </div>
-                </div>
-                <div class="absolute bottom-4 left-4 right-4 glass p-3 rounded-xl flex items-center justify-between text-white text-xs">
-                    <span>En-route to <b id="active-dest">JNTU</b></span>
-                    <span class="text-emerald-400 font-bold">LIVE</span>
-                </div>
-            </div>
-            
-            <div class="flex-1 bg-white rounded-t-[2.5rem] -mt-8 p-8 flex flex-col justify-between">
-                <div>
-                    <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6"></div>
-                    <p id="ride-status" class="text-red-600 font-bold uppercase tracking-widest text-sm mb-2">Emergency Pickup</p>
-                    <h2 class="text-2xl font-black text-slate-800 mb-6">Patient Extraction</h2>
-                    
-                    <div class="space-y-6">
+    <section id="problem" class="py-32 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-2 gap-16 items-center">
+                <div class="reveal">
+                    <h2 class="text-4xl md:text-6xl font-bold mb-8 tracking-tight">The Reality of <br><span class="text-brand-primary">Emergency Delays</span></h2>
+                    <p class="text-xl text-gray-400 mb-6 italic border-l-4 border-brand-primary pl-6">
+                        "Finding an ambulance today is a game of chance where the stakes are human lives."
+                    </p>
+                    <div class="space-y-6 text-gray-300">
                         <div class="flex gap-4">
-                            <div class="flex flex-col items-center">
-                                <div class="w-3 h-3 rounded-full bg-red-600"></div>
-                                <div class="w-0.5 h-10 bg-slate-100"></div>
-                                <div class="w-3 h-3 rounded-full bg-blue-600"></div>
-                            </div>
-                            <div class="space-y-4">
-                                <div>
-                                    <p class="text-[10px] text-slate-400 font-bold uppercase">Pickup Location</p>
-                                    <p id="pickup-text" class="text-sm font-semibold">Miyapur Metro Station</p>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] text-slate-400 font-bold uppercase">Drop-off Point</p>
-                                    <p class="text-sm font-semibold">ResQ General Hospital</p>
-                                </div>
-                            </div>
+                            <i class="fas fa-clock text-brand-primary mt-1"></i>
+                            <p>Current systems are fragmented, making the search for an ambulance slow and stressful.</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <i class="fas fa-eye-slash text-brand-primary mt-1"></i>
+                            <p>Total lack of visibility regarding real-time ambulance availability near your location.</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <i class="fas fa-exclamation-triangle text-brand-primary mt-1"></i>
+                            <p>Communication delays between hospitals and users during critical moments cost lives.</p>
                         </div>
                     </div>
                 </div>
-
-                <div id="swipe-container" class="swipe-slider mb-4">
-                    <div id="swipe-text" class="absolute inset-0 flex items-center justify-center text-sm font-bold text-slate-400 uppercase tracking-widest">Swipe to Start Trip</div>
-                    <div id="swipe-btn" class="swipe-handle">
-                        <i class="fas fa-chevron-right text-white"></i>
+                <div class="grid grid-cols-2 gap-4 reveal" style="transition-delay: 300ms;">
+                    <div class="glass p-8 rounded-3xl mt-12">
+                        <span class="text-4xl block mb-4">⌛</span>
+                        <h4 class="font-bold text-white">Stressful Search</h4>
+                    </div>
+                    <div class="glass p-8 rounded-3xl">
+                        <span class="text-4xl block mb-4">🏥</span>
+                        <h4 class="font-bold text-white">No Availability Info</h4>
+                    </div>
+                    <div class="glass p-8 rounded-3xl mt-4">
+                        <span class="text-4xl block mb-4">📍</span>
+                        <h4 class="font-bold text-white">Location Blind</h4>
+                    </div>
+                    <div class="glass p-8 rounded-3xl -mt-8">
+                        <span class="text-4xl block mb-4">💔</span>
+                        <h4 class="font-bold text-white">Costly Delays</h4>
                     </div>
                 </div>
+            </div>
+        </div>
+    </section>
 
-                <div id="hospital-notify" class="hidden animate-bounce text-center p-3 bg-blue-50 rounded-2xl text-blue-700 text-xs font-bold border border-blue-100">
-                    🏥 ALERT SENT: Stretcher & ICU Team Ready
+    <section id="solution" class="py-32 px-6 bg-white/[0.02]">
+        <div class="max-w-4xl mx-auto text-center mb-20 reveal">
+            <h2 class="text-4xl md:text-6xl font-bold mb-6">A Practical <span class="text-brand-accent">Solution</span></h2>
+            <p class="text-xl text-gray-400">ResQ centralizes the emergency network to provide immediate clarity when chaos strikes.</p>
+        </div>
+        <div class="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
+            <div class="glass p-10 rounded-[2.5rem] reveal" style="transition-delay: 100ms;">
+                <div class="w-14 h-14 bg-brand-accent/10 rounded-2xl flex items-center justify-center mb-8">
+                    <i class="fas fa-search-location text-2xl text-brand-accent"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">Unified Discovery</h3>
+                <p class="text-gray-400">One single platform to find and connect with every nearby hospital ambulance instantly.</p>
+            </div>
+            <div class="glass p-10 rounded-[2.5rem] reveal" style="transition-delay: 200ms;">
+                <div class="w-14 h-14 bg-brand-accent/10 rounded-2xl flex items-center justify-center mb-8">
+                    <i class="fas fa-bolt text-2xl text-brand-accent"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">Real-time Visibility</h3>
+                <p class="text-gray-400">Instantly see which hospital has an ambulance ready to move right now—no phone calls needed.</p>
+            </div>
+            <div class="glass p-10 rounded-[2.5rem] reveal" style="transition-delay: 300ms;">
+                <div class="w-14 h-14 bg-brand-accent/10 rounded-2xl flex items-center justify-center mb-8">
+                    <i class="fas fa-hand-holding-heart text-2xl text-brand-accent"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">Faster Decisions</h3>
+                <p class="text-gray-400">Reducing the time taken to find a hospital allows families to focus on the patient, not the logistics.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="how-it-works" class="py-32 px-6">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-4xl font-bold text-center mb-20 reveal">The ResQ Response</h2>
+            <div class="relative grid md:grid-cols-4 gap-12">
+                <div class="text-center reveal" style="transition-delay: 100ms;">
+                    <div class="w-20 h-20 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-brand-primary/20">
+                        <i class="fas fa-mobile-alt text-2xl text-brand-primary"></i>
+                    </div>
+                    <h4 class="font-bold mb-2">Request</h4>
+                    <p class="text-sm text-gray-500">User triggers an emergency request</p>
+                </div>
+                <div class="text-center reveal" style="transition-delay: 200ms;">
+                    <div class="w-20 h-20 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-brand-primary/20">
+                        <i class="fas fa-satellite-dish text-2xl text-brand-primary"></i>
+                    </div>
+                    <h4 class="font-bold mb-2">Network Ping</h4>
+                    <p class="text-sm text-gray-500">Nearby hospitals notified instantly</p>
+                </div>
+                <div class="text-center reveal" style="transition-delay: 300ms;">
+                    <div class="w-20 h-20 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-brand-primary/20">
+                        <i class="fas fa-check-circle text-2xl text-brand-primary"></i>
+                    </div>
+                    <h4 class="font-bold mb-2">Selection</h4>
+                    <p class="text-sm text-gray-500">Fastest available option is confirmed</p>
+                </div>
+                <div class="text-center reveal" style="transition-delay: 400ms;">
+                    <div class="w-20 h-20 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-brand-primary/20">
+                        <i class="fas fa-ambulance text-2xl text-brand-primary"></i>
+                    </div>
+                    <h4 class="font-bold mb-2">Rescue</h4>
+                    <p class="text-sm text-gray-500">Ambulance reaches the user quickly</p>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <section id="success-screen" class="hidden fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center justify-center p-8 text-center">
-            <div class="hero-zoom">
-                <div class="w-32 h-32 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(16,185,129,0.4)]">
-                    <i class="fas fa-heart text-5xl text-white"></i>
+    <section id="vision" class="py-32 px-6 glass rounded-[3rem] mx-6">
+        <div class="max-w-5xl mx-auto text-center reveal">
+            <h2 class="text-4xl md:text-6xl font-bold mb-10">The Road Ahead</h2>
+            <div class="grid md:grid-cols-2 gap-12 text-left items-center">
+                <div class="space-y-8">
+                    <div>
+                        <h4 class="text-brand-primary font-bold mb-2 uppercase tracking-widest text-sm">Our Vision</h4>
+                        <p class="text-2xl font-semibold">To build a city-wide emergency network that eventually spans across India.</p>
+                    </div>
+                    <div>
+                        <h4 class="text-brand-accent font-bold mb-2 uppercase tracking-widest text-sm">Our Approach</h4>
+                        <p class="text-gray-400">We are focused on building a strong foundation and improving continuously. We start simple: get the operations right first, then introduce smarter optimizations over time as the network grows.</p>
+                    </div>
                 </div>
-                <h1 class="text-4xl font-black text-white mb-4">You are a Hero ❤️</h1>
-                <p class="text-slate-400 text-lg mb-8">Hospital handover successful. Life saved.</p>
-                <button onclick="resetApp()" class="px-10 py-4 bg-white text-slate-900 rounded-full font-bold shadow-xl">Back to Base</button>
+                <div class="bg-brand-black p-10 rounded-3xl border border-white/10 shadow-2xl animate-float">
+                    <p class="text-xl italic font-medium mb-6">"Our focus is not just on technology, but on the logistics of human survival. We improve response systems step-by-step."</p>
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center font-bold">MR</div>
+                        <div>
+                            <p class="font-bold">Manmada Reddy</p>
+                            <p class="text-sm text-gray-500">Founder, ResQ</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-    </div>
+    <section class="py-32 px-6">
+        <div class="max-w-7xl mx-auto flex flex-col items-center text-center reveal">
+            <h2 class="text-4xl font-bold mb-16">The Founder</h2>
+            <div class="w-32 h-32 bg-gradient-to-br from-brand-primary to-brand-accent rounded-[2rem] flex items-center justify-center text-4xl font-black mb-6 shadow-2xl rotate-3">MR</div>
+            <h3 class="text-3xl font-bold mb-2">Manmada Reddy</h3>
+            <p class="text-brand-primary font-bold mb-6">Founder</p>
+            <p class="max-w-2xl text-gray-400 text-lg">
+                Focused on solving real-world emergency challenges with practical solutions. I believe that by fixing the coordination gap, we can make healthcare access a fundamental reality for everyone.
+            </p>
+        </div>
+    </section>
 
-    <nav id="bottom-nav" class="absolute bottom-0 inset-x-0 h-20 glass border-t border-white/10 flex justify-around items-center px-4 z-40 transition-transform">
-        <button onclick="showScreen('dashboard-screen')" class="text-red-500"><i class="fas fa-home text-xl"></i></button>
-        <button class="text-slate-500 opacity-50"><i class="fas fa-history text-xl"></i></button>
-        <button onclick="window.location.href='tel:8978257449'" class="w-12 h-12 bg-red-600 rounded-full -mt-10 flex items-center justify-center text-white shadow-lg border-4 border-slate-950">
-            <i class="fas fa-phone"></i>
-        </button>
-        <button class="text-slate-500 opacity-50"><i class="fas fa-bell text-xl"></i></button>
-        <button onclick="logout()" class="text-slate-500"><i class="fas fa-sign-out-alt text-xl"></i></button>
-    </nav>
-</div>
-
-<audio id="siren-sound" loop src="https://www.soundjay.com/mechanical/sounds/ambulance-siren-01.mp3"></audio>
-<audio id="hero-sound" src="https://www.soundjay.com/human/sounds/applause-01.mp3"></audio>
-
-<script>
-    let currentOTP = "";
-    let ridePhase = 0; // 0: Start, 1: Arrived, 2: Complete
-    let timerInterval;
-    const locations = ["JNTU", "KPHB", "Miyapur", "Kukatpally", "Pragathi Nagar"];
-
-    // INIT
-    window.onload = () => {
-        if(localStorage.getItem('driver_session')) {
-            showScreen('dashboard-screen');
-        }
-        updateBattery();
-        updateLocation();
-        setInterval(updateClock, 1000);
-        setInterval(updateLocation, 10000);
-        setInterval(simulateRandomRequest, 25000);
-    };
-
-    function updateClock() {
-        const now = new Date();
-        document.getElementById('live-clock').innerText = now.getHours() + ":" + now.getMinutes().toString().padStart(2, '0');
-    }
-
-    // LOGIN LOGIC
-    function sendOTP() {
-        const phone = document.getElementById('phone-input').value;
-        if(phone.length < 10) return alert("Enter valid phone");
-        
-        currentOTP = Math.floor(100000 + Math.random() * 900000).toString();
-        document.getElementById('otp-demo').innerText = "DEMO OTP: " + currentOTP;
-        document.getElementById('otp-demo').classList.remove('hidden');
-        document.getElementById('otp-area').classList.remove('hidden');
-    }
-
-    function verifyOTP() {
-        const input = document.getElementById('otp-input').value;
-        if(input === currentOTP) {
-            localStorage.setItem('driver_session', 'active');
-            showScreen('dashboard-screen');
-            showToast("Authenticated Successfully");
-        } else {
-            alert("Invalid OTP");
-        }
-    }
-
-    function logout() {
-        localStorage.clear();
-        location.reload();
-    }
-
-    // SCREEN NAV
-    function showScreen(id) {
-        ['login-screen', 'dashboard-screen', 'ride-screen', 'success-screen'].forEach(s => {
-            document.getElementById(s).classList.add('hidden');
-        });
-        document.getElementById(id).classList.remove('hidden');
-        
-        const nav = document.getElementById('bottom-nav');
-        if(id === 'dashboard-screen') nav.classList.remove('translate-y-full');
-        else nav.classList.add('translate-y-full');
-    }
-
-    // BATTERY & LOCATION
-    async function updateBattery() {
-        try {
-            const battery = await navigator.getBattery();
-            const updateUI = () => {
-                const level = Math.round(battery.level * 100);
-                document.getElementById('bat-level').innerText = level + "%";
-                document.getElementById('bat-status-text').innerText = `${level}% • ${battery.charging ? 'Charging' : 'On Battery'}`;
+    <section id="contact" class="py-32 px-6 relative overflow-hidden">
+        <div class="hero-glow top-0 left-1/2 -translate-x-1/2"></div>
+        <div class="max-w-7xl mx-auto grid md:grid-cols-2 gap-20">
+            <div class="reveal">
+                <h2 class="text-5xl font-bold mb-8">Let's build the future <span class="text-brand-primary">together.</span></h2>
+                <p class="text-xl text-gray-400 mb-12">I am looking to connect with investors and partners who value practical execution and human-centric problem-solving.</p>
                 
-                const card = document.getElementById('battery-card');
-                const icon = document.getElementById('bat-big-icon');
-                
-                if(level < 20) {
-                    card.classList.add('border-red-500');
-                    icon.className = "fas fa-battery-quarter text-red-500";
-                    if(level < 15) alert("Low Battery – Please charge device");
-                } else if(level < 50) {
-                    card.classList.add('border-yellow-500');
-                    icon.className = "fas fa-battery-half text-yellow-500";
-                } else {
-                    card.classList.add('border-emerald-500');
-                    icon.className = "fas fa-battery-full text-emerald-500";
+                <div class="space-y-4 mb-12">
+                    <a href="tel:8978257449" class="flex items-center gap-4 glass p-4 rounded-2xl hover:border-brand-primary transition-all">
+                        <div class="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary"><i class="fas fa-phone-alt"></i></div>
+                        <span class="font-semibold">8978257449</span>
+                    </a>
+                    <a href="https://wa.me/918978257449" target="_blank" class="flex items-center gap-4 glass p-4 rounded-2xl hover:border-green-500 transition-all">
+                        <div class="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center text-green-500"><i class="fab fa-whatsapp"></i></div>
+                        <span class="font-semibold">Message on WhatsApp</span>
+                    </a>
+                    <a href="mailto:manmadareddy61@gmail.com" class="flex items-center gap-4 glass p-4 rounded-2xl hover:border-brand-accent transition-all">
+                        <div class="w-10 h-10 bg-brand-accent/10 rounded-xl flex items-center justify-center text-brand-accent"><i class="fas fa-envelope"></i></div>
+                        <span class="font-semibold">manmadareddy61@gmail.com</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="glass p-10 rounded-[2.5rem] reveal" style="transition-delay: 200ms;">
+                <form id="contactForm" onsubmit="handleForm(event)" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-400 mb-2">Name</label>
+                        <input type="text" id="name" required class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 focus:outline-none focus:border-brand-primary transition-all" placeholder="Enter your name">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-400 mb-2">Email</label>
+                        <input type="email" id="email" required class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 focus:outline-none focus:border-brand-primary transition-all" placeholder="Enter your email">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-400 mb-2">Message</label>
+                        <textarea id="message" required rows="4" class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 focus:outline-none focus:border-brand-primary transition-all" placeholder="Tell us about your interest..."></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-white text-black font-bold py-5 rounded-2xl hover:bg-brand-primary hover:text-white transition-all duration-500">
+                        Send Interest Message
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-12 border-t border-white/5 text-center text-gray-600 text-sm">
+        <p>&copy; 2024 ResQ Emergency Response Platform. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Reveal animation on scroll
+        function reveal() {
+            var reveals = document.querySelectorAll(".reveal");
+            for (var i = 0; i < reveals.length; i++) {
+                var windowHeight = window.innerHeight;
+                var elementTop = reveals[i].getBoundingClientRect().top;
+                var elementVisible = 150;
+                if (elementTop < windowHeight - elementVisible) {
+                    reveals[i].classList.add("active");
                 }
-            };
-            updateUI();
-            battery.addEventListener('levelchange', updateUI);
-            battery.addEventListener('chargingchange', updateUI);
-        } catch(e) { console.log("Battery API not supported"); }
-    }
-
-    function updateLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(pos => {
-                document.getElementById('geo-location').innerText = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
-            }, () => {
-                document.getElementById('geo-location').innerText = "Miyapur, Hyderabad";
-            });
+            }
         }
-    }
+        window.addEventListener("scroll", reveal);
+        reveal(); // Run on load
 
-    // EMERGENCY LOGIC
-    function simulateRandomRequest() {
-        if(!localStorage.getItem('driver_session') || document.getElementById('ride-screen').offsetParent !== null) return;
-        
-        const loc = locations[Math.floor(Math.random()*locations.length)];
-        document.getElementById('req-loc').innerText = loc;
-        document.getElementById('emergency-alert').classList.remove('hidden');
-        document.getElementById('siren-sound').play();
-        
-        let count = 15;
-        document.getElementById('timer').innerText = count + "s";
-        timerInterval = setInterval(() => {
-            count--;
-            document.getElementById('timer').innerText = count + "s";
-            if(count <= 0) rejectRide();
-        }, 1000);
-    }
-
-    function acceptRide() {
-        clearInterval(timerInterval);
-        document.getElementById('siren-sound').pause();
-        document.getElementById('siren-sound').currentTime = 0;
-        document.getElementById('emergency-alert').classList.add('hidden');
-        
-        const dest = document.getElementById('req-loc').innerText;
-        document.getElementById('active-dest').innerText = dest;
-        document.getElementById('pickup-text').innerText = dest + " Cross Roads";
-        
-        ridePhase = 0;
-        updateSwipeUI();
-        showScreen('ride-screen');
-    }
-
-    function rejectRide() {
-        clearInterval(timerInterval);
-        document.getElementById('siren-sound').pause();
-        document.getElementById('emergency-alert').classList.add('hidden');
-    }
-
-    // SWIPE INTERACTION
-    const swipeBtn = document.getElementById('swipe-btn');
-    let isDragging = false;
-    let startX = 0;
-
-    swipeBtn.addEventListener('mousedown', startDrag);
-    swipeBtn.addEventListener('touchstart', startDrag);
-    window.addEventListener('mousemove', drag);
-    window.addEventListener('touchmove', drag);
-    window.addEventListener('mouseup', endDrag);
-    window.addEventListener('touchend', endDrag);
-
-    function startDrag(e) {
-        isDragging = true;
-        startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-        swipeBtn.style.transition = 'none';
-    }
-
-    function drag(e) {
-        if(!isDragging) return;
-        let x = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-        let moveX = x - startX;
-        if(moveX > 0 && moveX < 280) {
-            swipeBtn.style.transform = `translateX(${moveX}px)`;
+        // Handle Contact Form
+        function handleForm(e) {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const message = document.getElementById('message').value;
+            
+            const body = `Name: ${name}%0D%0AEmail: ${email}%0D%0A%0D%0A${message}`;
+            window.location.href = `mailto:manmadareddy61@gmail.com?subject=Investor/Partner Inquiry: ${name}&body=${body}`;
         }
-    }
-
-    function endDrag() {
-        if(!isDragging) return;
-        isDragging = false;
-        const currentX = parseInt(swipeBtn.style.transform.replace('translateX(', '')) || 0;
-        
-        if(currentX > 200) {
-            handlePhaseComplete();
-        } else {
-            swipeBtn.style.transition = 'transform 0.3s';
-            swipeBtn.style.transform = 'translateX(0px)';
-        }
-    }
-
-    function handlePhaseComplete() {
-        ridePhase++;
-        swipeBtn.style.transform = 'translateX(0px)';
-        
-        if(ridePhase === 1) { // Arrived
-            document.getElementById('ride-status').innerText = "Patient On-Board";
-            document.getElementById('ride-status').classList.replace('text-red-600', 'text-blue-600');
-            document.getElementById('hospital-notify').classList.remove('hidden');
-            document.getElementById('amb-tracker').style.animation = 'drive 5s infinite linear';
-            showToast("Hospital Notified");
-        } else if(ridePhase === 2) { // Complete
-            showSuccess();
-        }
-        updateSwipeUI();
-    }
-
-    function updateSwipeUI() {
-        const texts = ["Swipe to Start Trip", "Swipe to Arrive", "Swipe to Complete"];
-        const colors = ["#ef4444", "#3b82f6", "#10b981"];
-        document.getElementById('swipe-text').innerText = texts[ridePhase];
-        swipeBtn.style.backgroundColor = colors[ridePhase];
-    }
-
-    function showSuccess() {
-        showScreen('success-screen');
-        document.getElementById('hero-sound').play();
-    }
-
-    function resetApp() {
-        ridePhase = 0;
-        document.getElementById('hospital-notify').classList.add('hidden');
-        document.getElementById('ride-status').innerText = "Emergency Pickup";
-        document.getElementById('ride-status').classList.replace('text-blue-600', 'text-red-600');
-        showScreen('dashboard-screen');
-    }
-
-    function showToast(msg) {
-        const t = document.createElement('div');
-        t.className = "fixed top-12 left-1/2 -translate-x-1/2 bg-white text-slate-900 px-6 py-3 rounded-full font-bold shadow-2xl z-[100] animate-bounce text-sm";
-        t.innerText = "🔔 " + msg;
-        document.body.appendChild(t);
-        setTimeout(() => t.remove(), 3000);
-    }
-
-    function toggleDuty() {
-        const isOnline = document.getElementById('status-toggle').checked;
-        showToast(isOnline ? "Unit is now ACTIVE" : "Unit is OFFLINE");
-    }
-</script>
+    </script>
 </body>
 </html>
